@@ -25,7 +25,7 @@ var SCHED=OP_ACT.map(function(a){return a.code;});
 var WD=[{n:1,l:"Lun"},{n:2,l:"Mar"},{n:3,l:"Mer"},{n:4,l:"Gio"},{n:5,l:"Ven"}];
 var FIXED=ACTIVITIES.filter(function(a){return a.alloc==="fixed";}).sort(function(a,b){return a.order-b.order;});
 
-var COL={CIC:{bg:"#fef3c7",tx:"#92400e",bd:"#fcd34d"},NIC:{bg:"#e0e7ff",tx:"#3730a3",bd:"#a5b4fc"},NICSP:{bg:"#e0f2fe",tx:"#075985",bd:"#7dd3fc"},NICMIN:{bg:"#ddd6fe",tx:"#6d28d9",bd:"#a78bfa"},VD:{bg:"#fce7f3",tx:"#9d174d",bd:"#f9a8d4"},VDOM:{bg:"#fbcfe8",tx:"#831843",bd:"#f472b6"},PU:{bg:"#fef9c3",tx:"#854d0e",bd:"#fde047"},VALID:{bg:"#d1fae5",tx:"#065f46",bd:"#6ee7b7"},222:{bg:"#ede9fe",tx:"#5b21b6",bd:"#c4b5fd"},ASP:{bg:"#cffafe",tx:"#155e75",bd:"#67e8f9"},CIECHI:{bg:"#ffe4e6",tx:"#9f1239",bd:"#fda4af"}};
+var COL={CIC:{bg:"#fef3c7",tx:"#92400e",bd:"#fcd34d"},NIC:{bg:"#e0e7ff",tx:"#3730a3",bd:"#a5b4fc"},NICSP:{bg:"#e0f2fe",tx:"#075985",bd:"#7dd3fc"},NICMIN:{bg:"#ddd6fe",tx:"#6d28d9",bd:"#a78bfa"},VD:{bg:"#d1fae5",tx:"#065f46",bd:"#6ee7b7"},VDOM:{bg:"#a7f3d0",tx:"#064e3b",bd:"#34d399"},PU:{bg:"#fef9c3",tx:"#854d0e",bd:"#fde047"},VALID:{bg:"#fce7f3",tx:"#9d174d",bd:"#f9a8d4"},222:{bg:"#ede9fe",tx:"#5b21b6",bd:"#c4b5fd"},ASP:{bg:"#cffafe",tx:"#155e75",bd:"#67e8f9"},CIECHI:{bg:"#ffe4e6",tx:"#9f1239",bd:"#fda4af"}};
 
 var VDOM_PAIRS=[["Costa Manuela","Arcifa Veronica"],["Ligreggi Antonella","Scifo Nicole"],["Liuzzo Ludovico","Grieco Angela"],["Di Paola Danila","Iosia Serena"],["Palmeri Andrea","Tumino Mariagrazia"]];
 
@@ -34,33 +34,33 @@ var VDOM_PAIRS=[["Costa Manuela","Arcifa Veronica"],["Ligreggi Antonella","Scifo
 var DU=[
 ["Arcifa Veronica",true,"STR",false,true,[1,2,3,4,5],null,false],
 ["Alberio Anna",false,"ACN",false,false,[1,3,4,5],null,false],
-["Bonfiglio Claudia",true,"STR",false,true,[1,2,3,4,5],4,false],
+["Bonfiglio Claudia",true,"STR",true,true,[1,2,3,4,5],4,false],
 ["Calabrese Giorgia",false,"STR",false,false,[1,2,3,4,5],null,false],
-["Costa Manuela",true,"STR",false,false,[1,2,3,4,5],3,false],
+["Costa Manuela",true,"STR",true,false,[1,2,3,4,5],3,false],
 ["D\u2019Angelo Mariangela",false,"ACN",false,false,[1,2,3,4],null,false],
 ["Di Guardo Caterina",false,"STR",false,false,[1,2,3,4,5],null,false],
 ["Di Paola Danila",true,"STR",false,false,[1,2,3,4,5],3,false],
-["Grieco Angela",true,"STR",false,false,[1,2,3,4,5],4,false],
-["Iosia Serena",true,"STR",false,false,[1,2,3,4,5],4,false],
+["Grieco Angela",true,"STR",true,false,[1,2,3,4,5],4,false],
+["Iosia Serena",true,"STR",true,false,[1,2,3,4,5],4,false],
 ["La Delfa Rosalba",false,"STR",false,false,[1,2,3,4,5],null,false],
 ["Licciardello Gabriele",true,"ACN",false,false,[1,2,3,4,5],null,false],
-["Ligreggi Antonella",true,"STR",false,false,[1,2,3,4,5],1,false],
-["Liuzzo Ludovico",true,"STR",false,false,[1,2,3,4,5],4,false],
+["Ligreggi Antonella",true,"STR",true,false,[1,2,3,4,5],1,false],
+["Liuzzo Ludovico",true,"STR",true,false,[1,2,3,4,5],4,false],
 ["Lo Pumo Roberta",false,"STR",false,false,[1,2,3,4,5],null,false],
 ["Martines Annamaria",false,"ACN",false,false,[1,2,3],null,false],
 ["Marzullo Isabella",false,"STR",false,false,[1,2,3,4,5],3,false],
 ["Milana Maria Chiara",false,"STR",false,false,[1,2,3,4,5],null,false],
 ["Monaco Lucia",true,"ACN",false,false,[3,4,5],null,false],
 ["Munciv\u00EC Marina",true,"ACN",false,false,[1,2,3,4],null,false],
-["Palmeri Andrea",true,"STR",false,false,[1,2,3,4,5],2,false],
+["Palmeri Andrea",true,"STR",true,false,[1,2,3,4,5],2,false],
 ["Russo Ilenia",true,"ACN",false,false,[2,3,4,5],null,false],
 ["Scifo Nicole",false,"STR",false,false,[1,2,3,4,5],null,true],
 ["Sofia Salvatore",false,"STR",false,false,[1,2,3,4,5],null,false],
 ["Sollima Giovanni",false,"ACN",false,false,[1,2,4],null,false],
-["Spina Anna",true,"STR",false,false,[1,2,3,4,5],2,false],
+["Spina Anna",true,"STR",true,false,[1,2,3,4,5],2,false],
 ["Tumino Mariagrazia",true,"STR",false,false,[1,2,3,4,5],null,true],
 ["Valenti Giuseppe",false,"STR",false,false,[1,2,3,4,5],null,false],
-["Valenti Vincenzo",true,"ACN",false,false,[1,2,4],null,false],
+["Valenti Vincenzo",true,"ACN",true,false,[1,2,4],null,false],
 ];
 
 var MN=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
@@ -87,6 +87,13 @@ function mkDU(){
     var u=mkU(r[0],r[1],r[2],r[3],r[4],r[5],r[6],r[7],"d"+i);
     if(NP.includes(u.name))u.as.NICMIN={al:true,w:3};
     if(CP.includes(u.name))u.as.CIECHI={al:true,w:3};
+    // Arcifa: solo VDOM e CIECHI
+    if(u.name==="Arcifa Veronica"){
+      ACTIVITIES.forEach(function(a){
+        if(a.code==="CIECHI"||a.code==="VDOM")u.as[a.code]={al:true,w:1};
+        else u.as[a.code]={al:false,w:0};
+      });
+    }
     return u;
   });
 }
@@ -112,8 +119,8 @@ function buildInd(yr,mo,users,exc){
 
 /* ═══════════════════════ STORAGE ═══════════════════════ */
 var SK="cml-v8";
-async function sLoad(){try{if(window.storage){var r=await window.storage.get(SK);if(r&&r.value)return JSON.parse(r.value);}}catch(e){}return null;}
-async function sSave(st){try{if(window.storage)await window.storage.set(SK,JSON.stringify(st));}catch(e){console.warn("save err",e);}}
+async function sLoad(){try{var raw=localStorage.getItem(SK);if(raw)return JSON.parse(raw);}catch(e){console.warn("load err",e);}return null;}
+async function sSave(st){try{localStorage.setItem(SK,JSON.stringify(st));}catch(e){console.warn("save err",e);}}
 
 /* ═══════════════════════ SANITIZE ═══════════════════════ */
 function sanU(r){if(!Array.isArray(r)||!r.length)return null;return r.map(function(u){if(!u||!u.id||!u.name)return null;var b=mkAS(u.vo);var as=(u.as&&typeof u.as==="object")?Object.assign({},b,u.as):b;return{id:u.id,name:String(u.name),ml:!!u.ml,ct:u.ct||"STR",e222:!!u.e222,eCi:!!u.eCi,wd:Array.isArray(u.wd)?u.wd:[1,2,3,4,5],swDay:typeof u.swDay==="number"?u.swDay:null,vo:!!u.vo,notes:u.notes||"",as:as};}).filter(Boolean);}
@@ -282,17 +289,34 @@ function gen(year,month,users,gS,dayOv,eInd,inc,dRestr){
       out[k].NIC=nicP;
     } else {out[k].NIC=[];}
 
-    // VALID: remaining STR
-    var vP=[];gP("VALID",function(u){return u.ct==="STR";}).forEach(function(u){vP.push(u.id);aF(u.id,"VALID");});
+    // VALID/ASP: remaining placed respecting activity settings
+    // Users with VALID/ASP disabled in their profile are excluded (e.g. Arcifa)
+    var remaining=norm.filter(function(u){
+      if(un.has(u.id)||dU.has(u.id))return false;
+      if(!u.wd.includes(dow))return false;
+      if(u.swDay===dow)return false;
+      return true;
+    });
+    var vP=[];var aP2=[];
+    remaining.forEach(function(u){
+      if(u.ct==="STR"){
+        var vs=u.as.VALID;
+        if(vs&&vs.al===false)return; // respect disabled
+        vP.push(u.id);aF(u.id,"VALID");
+      } else {
+        var ap=u.as.ASP;
+        if(ap&&ap.al===false)return;
+        aP2.push(u.id);aF(u.id,"ASP");
+      }
+    });
     out[k].VALID=vP;
-    // ASP: remaining ACN
-    var aP=[];gP("ASP",function(u){return u.ct==="ACN";}).forEach(function(u){aP.push(u.id);aF(u.id,"ASP");});
-    out[k].ASP=aP;
+    out[k].ASP=aP2;
   }
   return out;
 }
 
 /* ═══════════════════════ STYLES ═══════════════════════ */
+var PCSS="@media print{.no-print{display:none!important}body{font-size:8pt;margin:4mm;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}table{border-collapse:collapse;width:100%;page-break-inside:auto}th,td{border:1px solid #bbb;padding:2px 3px;font-size:7pt}tr{page-break-inside:avoid}@page{size:landscape;margin:6mm}}";
 var cs={
   c:{padding:"2px 4px",fontSize:11,borderBottom:"1px solid #e2e8f0",verticalAlign:"top",lineHeight:1.3},
   h:{padding:"3px 4px",fontSize:10,fontWeight:700,background:"#f8fafc",borderBottom:"2px solid #cbd5e1",position:"sticky",top:0,zIndex:2,whiteSpace:"nowrap",textAlign:"center"},
@@ -373,6 +397,39 @@ export default function App(){
     sSave({users:users,gS:gS,inc:inc,dR:dR,ovA:ovA,asA:asA,exA:exA,ntA:ntA}).then(function(){sSaved(true);});
   },[users,gS,inc,dR,ovA,asA,exA,ntA]);
 
+  var doExportJSON=useCallback(function(){
+    var data={users:users,gS:gS,inc:inc,dR:dR,ovA:ovA,asA:asA,exA:exA,ntA:ntA,_v:"v8",_date:new Date().toISOString()};
+    var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+    var url=URL.createObjectURL(blob);var a=document.createElement("a");
+    a.href=url;a.download="CML_Planning_backup_"+new Date().toISOString().slice(0,10)+".json";
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(url);},1000);
+  },[users,gS,inc,dR,ovA,asA,exA,ntA]);
+
+  var fileRef=useRef(null);
+  var doImportJSON=useCallback(function(){
+    if(fileRef.current)fileRef.current.click();
+  },[]);
+  var handleImportFile=useCallback(function(e){
+    var file=e.target.files&&e.target.files[0];
+    if(!file)return;
+    var reader=new FileReader();
+    reader.onload=function(ev){
+      try{
+        var data=JSON.parse(ev.target.result);
+        var u=sanU(data.users);if(u&&u.length)sUsers(u);
+        sGS(sanS(data.gS));sInc(sanA(data.inc));
+        if(data.dR)sDR(sanO(data.dR));
+        sOvA(sanO(data.ovA));sAsA(sanO(data.asA));
+        sExA(sanO(data.exA));sNtA(sanO(data.ntA));
+        sSaved(false);
+        sModal({title:"Importato",msg:"Dati caricati. Clicca Salva per confermare.",onOk:function(){sModal(null);}});
+      }catch(err){sModal({title:"Errore",msg:"File non valido: "+err.message,onOk:function(){sModal(null);}});}
+    };
+    reader.readAsText(file);
+    e.target.value="";
+  },[]);
+
   var mk=yr+"-"+mo;
   var dOv=ovA[mk]||{};
   var asg=asA[mk]||{};
@@ -389,6 +446,7 @@ export default function App(){
 
   var doGen=useCallback(function(){sModal({title:"Genera",msg:"Sovrascrive le assegnazioni.",onOk:function(){sAS(gen(yr,mo,users,gS,dOv,eInd,inc,dR));sModal(null);}});},[yr,mo,users,gS,dOv,eInd,inc,dR,sAS]);
   var doExp=useCallback(function(){exportHTML(yr,mo,nd,sn,asg,eInd,dOv);},[yr,mo,nd,sn,asg,eInd,dOv]);
+  var doPrint=useCallback(function(){document.title="Planning "+MN[mo]+" "+yr;setTimeout(function(){try{window.print();}catch(e){doExp();}},100);},[mo,yr,doExp]);
 
   var prev=function(){if(mo===0){sMo(11);sYr(function(y){return y-1;});}else sMo(function(m){return m-1;});};
   var next=function(){if(mo===11){sMo(0);sYr(function(y){return y+1;});}else sMo(function(m){return m+1;});};
@@ -397,31 +455,39 @@ export default function App(){
 
   return(
     <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",maxWidth:1500,margin:"0 auto",padding:"10px 14px",color:"#1e293b",fontSize:13}}>
+      <style>{PCSS}</style>
       <Modal show={!!modal} title={modal?modal.title:""} msg={modal?modal.msg:""} onOk={modal?modal.onOk:null} onCancel={function(){sModal(null);}}/>
 
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8,flexWrap:"wrap",gap:8}}>
+      <div className="no-print" style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8,flexWrap:"wrap",gap:8}}>
         <div style={{display:"flex",alignItems:"baseline",gap:10}}>
           <span style={{fontSize:18,fontWeight:800,letterSpacing:-0.5}}>CML Catania</span>
           <span style={{fontSize:12,color:"#64748b"}}>Planning Mensile</span>
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <button onClick={doSave} style={Object.assign({},cs.bp,{background:saved?"#16a34a":"#dc2626",padding:"6px 20px"})}>
-            {saved?"\u2713 Salvato":"Salva modifiche"}
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <button onClick={doSave} style={Object.assign({},cs.bp,{background:saved?"#16a34a":"#dc2626",padding:"6px 16px",fontSize:12})}>
+            {saved?"\u2713 Salvato":"Salva"}
           </button>
+          <button onClick={doExportJSON} style={Object.assign({},cs.bs,{fontSize:11,padding:"5px 10px"})} title="Esporta backup JSON">{"\u2B07"} Backup</button>
+          <button onClick={doImportJSON} style={Object.assign({},cs.bs,{fontSize:11,padding:"5px 10px"})} title="Importa backup JSON">{"\u2B06"} Carica</button>
+          <input ref={fileRef} type="file" accept=".json" style={{display:"none"}} onChange={handleImportFile}/>
+          <span style={{color:"#cbd5e1"}}>|</span>
           <button onClick={prev} style={cs.bs}>{"\u25C0"}</button>
           <span style={{fontWeight:700,fontSize:14,minWidth:150,textAlign:"center"}}>{MN[mo]} {yr}</span>
           <button onClick={next} style={cs.bs}>{"\u25B6"}</button>
         </div>
       </div>
 
-      <div style={{display:"flex",gap:1,marginBottom:12,borderBottom:"2px solid #e2e8f0",flexWrap:"wrap"}}>
+      <div className="no-print" style={{display:"flex",gap:1,marginBottom:12,borderBottom:"2px solid #e2e8f0",flexWrap:"wrap"}}>
         {TABS.map(function(t){var isG=["Slot","Utenti","Regole","Vincoli"].includes(t);return(
           <button key={t} onClick={function(){sTab(t);}} style={{padding:"6px 14px",border:"none",cursor:"pointer",fontWeight:tab===t?700:400,color:tab===t?"#1e40af":"#64748b",background:tab===t?"#eff6ff":"transparent",borderBottom:tab===t?"2px solid #1e40af":"2px solid transparent",borderRadius:"6px 6px 0 0",fontSize:13}}>
             {t}{isG&&<span style={{marginLeft:3,fontSize:8,verticalAlign:"super",color:"#94a3b8"}}>{"\u25CF"}</span>}
           </button>);})}
       </div>
 
-      {tab==="Mese"&&<VMese yr={yr} mo={mo} nd={nd} users={users} sn={sn} gS={gS} dOv={dOv} asg={asg} sAS={sAS} eInd={eInd} doGen={doGen} doExp={doExp}/>}
+      <div style={{display:"none"}}><style>{"@media print{.print-hdr{display:block!important}}"}</style></div>
+      <div className="print-hdr" style={{display:"none",textAlign:"center",marginBottom:8,fontWeight:700,fontSize:14}}>CML Catania {"\u2014"} Planning {MN[mo]} {yr}</div>
+
+      {tab==="Mese"&&<VMese yr={yr} mo={mo} nd={nd} users={users} sn={sn} gS={gS} dOv={dOv} asg={asg} sAS={sAS} eInd={eInd} doGen={doGen} doExp={doExp} doPrint={doPrint}/>}
       {tab==="Slot"&&<VSlot gS={gS} sGS={sGS} yr={yr} mo={mo} nd={nd} dOv={dOv} sDO={sDO}/>}
       {tab==="Indispo"&&<VInd yr={yr} mo={mo} nd={nd} users={users} sn={sn} exc={exc} sEx={sEx} eInd={eInd}/>}
       {tab==="Utenti"&&<VUt users={users} sUsers={sUsers} sn={sn} sModal={sModal}/>}
@@ -447,12 +513,13 @@ function VMese(p){
   var PA=["CIC","NIC","NICSP","NICMIN","VD","CIECHI","VDOM","PU"];
 
   return(<div>
-    <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:6}}>
+    <div className="no-print" style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:6}}>
       {OP_DISP.filter(function(a){return COL[a.code];}).map(function(a){return(<span key={a.code} style={tg(a.code)}>{a.label}</span>);})}
     </div>
-    <div style={{display:"flex",gap:8,marginBottom:10}}>
+    <div className="no-print" style={{display:"flex",gap:8,marginBottom:10}}>
       <button onClick={p.doGen} style={cs.bp}>Genera Planning</button>
-      <button onClick={p.doExp} style={Object.assign({},cs.bp,{background:"#7c3aed"})}>Scarica per stampa</button>
+      <button onClick={p.doPrint} style={Object.assign({},cs.bp,{background:"#7c3aed"})}>Stampa PDF</button>
+      <button onClick={p.doExp} style={Object.assign({},cs.bs,{})}>Scarica HTML</button>
     </div>
     <div style={{overflowX:"auto"}}>
       <table style={{borderCollapse:"collapse",width:"100%",minWidth:900}}>
@@ -504,7 +571,7 @@ function VMese(p){
                 // add btn
                 var isAdd=edit&&edit.dk===k&&edit.code===a.code&&edit.idx===-1;
                 if(isAdd){var av3=gAv(k,a.code,undefined);cc.push(<select key="add" autoFocus value="" style={Object.assign({},cs.inp,{fontSize:9,padding:"1px",width:"100%"})} onChange={function(e){if(e.target.value)addSlot(k,a.code,e.target.value);}} onBlur={function(){setTimeout(function(){sEdit(null);},150);}}><option value="">Aggiungi...</option>{av3.map(function(u){return(<option key={u.id} value={u.id}>{sn[u.id]}</option>);})}</select>);}
-                else cc.push(<div key="ab" style={{textAlign:"center",marginTop:1}}><button onClick={function(){sEdit({dk:k,code:a.code,idx:-1});}} style={{background:"none",border:"none",color:"#94a3b8",cursor:"pointer",fontSize:10,padding:0}}>+</button></div>);
+                else cc.push(<div key="ab" className="no-print" style={{textAlign:"center",marginTop:1}}><button onClick={function(){sEdit({dk:k,code:a.code,idx:-1});}} style={{background:"none",border:"none",color:"#94a3b8",cursor:"pointer",fontSize:10,padding:0}}>+</button></div>);
 
                 return(<td key={a.code} style={Object.assign({},cs.c,{background:c?(c.bg+"60"):"#fff",textAlign:"center",fontSize:9,padding:"2px"})}>
                   {cc}</td>);
