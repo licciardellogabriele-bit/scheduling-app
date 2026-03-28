@@ -21,7 +21,7 @@ var OPA=ACT.filter(function(a){return a.cat!=="st";});
 var DISP=["CIC","NIC","NICSP","VD","VDOM","PU","NICMIN","CIECHI","ASP","VALID","222"];
 var OPD=DISP.map(function(c){return ACT.find(function(a){return a.code===c;});}).filter(Boolean);
 var FIX=ACT.filter(function(a){return a.alloc==="fix";}).sort(function(a,b){return a.ord-b.ord;});
-var SLOTABLE=FIX; // NIC already included (alloc:fix)
+var SLOTABLE=FIX.concat([ACT.find(function(a){return a.code==="NIC";})]);
 var WDS=[{n:1,l:"Lun"},{n:2,l:"Mar"},{n:3,l:"Mer"},{n:4,l:"Gio"},{n:5,l:"Ven"}];
 var COL={CIC:{bg:"#fef3c7",tx:"#92400e",bd:"#fcd34d"},NIC:{bg:"#e0e7ff",tx:"#3730a3",bd:"#a5b4fc"},NICSP:{bg:"#e0f2fe",tx:"#075985",bd:"#7dd3fc"},NICMIN:{bg:"#ddd6fe",tx:"#6d28d9",bd:"#a78bfa"},VD:{bg:"#d1fae5",tx:"#065f46",bd:"#6ee7b7"},VDOM:{bg:"#a7f3d0",tx:"#064e3b",bd:"#34d399"},PU:{bg:"#fef9c3",tx:"#854d0e",bd:"#fde047"},VALID:{bg:"#fce7f3",tx:"#9d174d",bd:"#f9a8d4"},222:{bg:"#ede9fe",tx:"#5b21b6",bd:"#c4b5fd"},ASP:{bg:"#cffafe",tx:"#155e75",bd:"#67e8f9"},CIECHI:{bg:"#ffe4e6",tx:"#9f1239",bd:"#fda4af"}};
 var VDOM_PAIRS=[["Costa Manuela","Arcifa Veronica"],["Ligreggi Antonella","Scifo Nicole"],["Liuzzo Ludovico","Grieco Angela"],["Di Paola Danila","Iosia Serena"],["Palmeri Andrea","Tumino Mariagrazia"]];
@@ -116,7 +116,6 @@ async function sSave(st){try{localStorage.setItem(SK,JSON.stringify(st));}catch(
 
 /* ═══════════ SANITIZE ═══════════ */
 function sanU(r){if(!Array.isArray(r)||!r.length)return null;return r.map(function(u){if(!u||!u.id||!u.name)return null;var b=mAS(u.vo);var as=(u.as&&typeof u.as==="object")?Object.assign({},b,u.as):b;
-  // Sync e222 flag with activity setting
   if(u.e222)as["222"]={al:true,w:(as["222"]&&as["222"].w)||1};
   return{id:u.id,name:String(u.name),ml:!!u.ml,ct:u.ct||"STR",e222:!!u.e222,eCi:!!u.eCi,wd:Array.isArray(u.wd)?u.wd:[1,2,3,4,5],swDay:typeof u.swDay==="number"?u.swDay:null,vo:!!u.vo,notes:u.notes||"",as:as};}).filter(Boolean);}
 function sanO(r){return(r&&typeof r==="object"&&!Array.isArray(r))?r:{};}
@@ -127,7 +126,7 @@ function sanS(r){if(!r||typeof r!=="object")return mDS();var d=mDS();Object.keys
 function shuf(a){var r=a.slice();for(var i=r.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=r[i];r[i]=r[j];r[j]=t;}return r;}
 
 function gen(year,month,users,gS,dayOv,eInd,inc,dRestr,locks,currentAsg){
-  var nd=nD(year,month),out={};
+  var nd=nD(year,month),out={},alerts={};
   var norm=users.filter(function(u){return !u.vo;});
   var tL={},aC={};
   norm.forEach(function(u){tL[u.id]=0;aC[u.id]={};DISP.forEach(function(c){aC[u.id][c]=0;});});
@@ -170,7 +169,7 @@ function gen(year,month,users,gS,dayOv,eInd,inc,dRestr,locks,currentAsg){
         var wa=(a.as[ac]&&a.as[ac].w)||1,wb=(b.as[ac]&&b.as[ac].w)||1;
         if(wb!==wa)return wb-wa;
         if(mlP){if(a.ml&&!b.ml)return-1;if(!a.ml&&b.ml)return 1;}
-        // Balance: activity-specific count * 20 + total load * 5 (avoid repetition)
+        // Heavy balance: total load * 10 + activity count * 5
         var la=(tL[a.id]||0)*5+((aC[a.id]&&aC[a.id][ac])||0)*20;
         var lb=(tL[b.id]||0)*5+((aC[b.id]&&aC[b.id][ac])||0)*20;
         return la-lb;
@@ -202,12 +201,7 @@ function gen(year,month,users,gS,dayOv,eInd,inc,dRestr,locks,currentAsg){
     // Fixed activities (skip locked)
     for(var fi=0;fi<FIX.length;fi++){
       var act=FIX[fi];var ac=act.code;
-      if(dayLockFlags[ac]&&dayAsg[ac]){
-        // Locked: keep existing assignment from current asg
-        out[k][ac]=dayAsg[ac].slice();
-        dayAsg[ac].forEach(function(uid){if(uid){dU.add(uid);dA.add(uid);}});
-        continue;
-      }
+      if(dayLockFlags[ac]&&dayAsg[ac]){out[k][ac]=dayAsg[ac].slice();dayAsg[ac].forEach(function(uid){if(uid){dU.add(uid);dA.add(uid);}});continue;}
       var ov=dayOv[k]&&dayOv[k][ac];var en=ov?(ov.enabled!==false):true;
       if((ac==="NICMIN"||ac==="CIECHI")&&!ov)en=false;
       if(!en){out[k][ac]=[];continue;}
@@ -239,6 +233,24 @@ function gen(year,month,users,gS,dayOv,eInd,inc,dRestr,locks,currentAsg){
         }
         out[k][ac]=tR;
       }
+
+      // Track shortfall alerts
+      var got=act.pair?Math.floor((out[k][ac]||[]).length/2):(out[k][ac]||[]).length;
+      if(got<nP&&en){
+        if(!alerts[k])alerts[k]=[];
+        var avlML=norm.filter(function(u){return u.ml&&!un.has(u.id)&&!dU.has(u.id)&&u.wd.includes(dow)&&u.swDay!==dow;}).length;
+        var avlNon=norm.filter(function(u){return !u.ml&&!un.has(u.id)&&!dU.has(u.id)&&u.wd.includes(dow)&&u.swDay!==dow;}).length;
+        var swN=norm.filter(function(u){return u.swDay===dow&&!un.has(u.id);});
+        var ferN=norm.filter(function(u){return un.has(u.id)&&!u.vo;});
+        var reason="";
+        if(avlML===0&&avlNon===0)reason="Nessuno disponibile";
+        else if(act.pair&&avlML===0)reason="Nessun ML disponibile ("+avlNon+" non-ML rimasti)";
+        else if(act.pair&&avlNon===0&&avlML<2)reason="Solo "+avlML+" ML, 0 non-ML";
+        else reason="Pool insufficiente: "+avlML+" ML, "+avlNon+" non-ML disponibili";
+        var swNames=swN.map(function(u){return u.name.split(" ")[0];}).slice(0,4);
+        if(swNames.length)reason+=" | SW: "+swNames.join(", ")+(swN.length>4?" +":"");
+        alerts[k].push({code:ac,label:act.label||ac,expected:nP,got:got,unit:act.pair?"coppie":"singoli",reason:reason});
+      }
     }
 
     // VALID/ASP catch-all: respect activity settings
@@ -260,11 +272,16 @@ function gen(year,month,users,gS,dayOv,eInd,inc,dRestr,locks,currentAsg){
     if(!out[k].ASP)out[k].ASP=[];
     var still=norm.filter(function(u){return !un.has(u.id)&&!dU.has(u.id)&&u.wd.includes(dow)&&u.swDay!==dow;});
     still.forEach(function(u){
-      if(u.ct==="STR"){out[k].VALID.push(u.id);aF(u.id,"VALID");}
-      else{out[k].ASP.push(u.id);aF(u.id,"ASP");}
+      if(u.ct==="STR"){
+        var vs=u.as&&u.as.VALID;if(vs&&vs.al===false)return; // respect disabled VALID (e.g. Arcifa)
+        out[k].VALID.push(u.id);aF(u.id,"VALID");
+      } else {
+        var as2=u.as&&u.as.ASP;if(as2&&as2.al===false)return;
+        out[k].ASP.push(u.id);aF(u.id,"ASP");
+      }
     });
   }
-  return out;
+  return {asg:out,alerts:alerts};
 }
 
 /* ═══════════ HTML EXPORT ═══════════ */
@@ -295,7 +312,7 @@ var TABS=["Mese","Slot","Indispo","Utenti","Regole","Vincoli","Riepilogo"];
 export default function App(){
   var now=new Date();var[yr,sYr]=useState(now.getFullYear());var[mo,sMo]=useState(now.getMonth());var[tab,sTab]=useState("Mese");var[loaded,sL]=useState(false);var[saved,sSv]=useState(true);
   var[users,sU]=useState(mDU);var[gS,sGS]=useState(mDS);var[inc,sInc]=useState([]);var[dR,sDR]=useState(function(){return{"d4":{"2":["CIC","NIC","VD"]}};});
-  var[ovA,sOvA]=useState({});var[asA,sAsA]=useState({});var[exA,sExA]=useState({});var[swE,sSWE]=useState({});var[ntA,sNtA]=useState({});var[locks,sLocks]=useState({});var[modal,sM]=useState(null);
+  var[ovA,sOvA]=useState({});var[asA,sAsA]=useState({});var[genAlerts,sGenAlerts]=useState({});var[exA,sExA]=useState({});var[swE,sSWE]=useState({});var[ntA,sNtA]=useState({});var[locks,sLocks]=useState({});var[modal,sM]=useState(null);
 
   useEffect(function(){sLoad().then(function(s){if(s){var u=sanU(s.users);if(u&&u.length)sU(u);sGS(sanS(s.gS));sInc(sanA(s.inc));if(s.dR)sDR(sanO(s.dR));sOvA(sanO(s.ovA));sAsA(sanO(s.asA));sExA(sanO(s.exA));sSWE(sanO(s.swE));sNtA(sanO(s.ntA));sLocks(sanO(s.locks));}sL(true);});},[]);
   var first=useRef(true);useEffect(function(){if(first.current){first.current=false;return;}sSv(false);},[users,gS,inc,dR,ovA,asA,exA,swE,ntA,locks]);
@@ -316,7 +333,7 @@ export default function App(){
   var sNt=useCallback(function(v){sNtA(function(p){var o=Object.assign({},p);o[mk]=v;return o;});},[mk]);
   var sLk=useCallback(function(fn){sLocks(function(p){var o=Object.assign({},p);o[mk]=typeof fn==="function"?fn(p[mk]||{}):fn;return o;});},[mk]);
 
-  var doGen=useCallback(function(){sM({title:"Genera",msg:"Sovrascrive (tranne celle bloccate).",onOk:function(){sAS(gen(yr,mo,users,gS,dOv,eInd,inc,dR,mLk,asg));sM(null);}});},[yr,mo,users,gS,dOv,eInd,inc,dR,mLk,asg,sAS]);
+  var doGen=useCallback(function(){sM({title:"Genera",msg:"Sovrascrive (tranne celle bloccate).",onOk:function(){var r=gen(yr,mo,users,gS,dOv,eInd,inc,dR,mLk,asg);sAS(r.asg);sGenAlerts(r.alerts||{});sM(null);}});},[yr,mo,users,gS,dOv,eInd,inc,dR,mLk,asg,sAS]);
   var doExpH=useCallback(function(){expHTML(yr,mo,nd,sn,asg,eInd,dOv);},[yr,mo,nd,sn,asg,eInd,dOv]);
   var doPrint=useCallback(function(){document.title="Planning "+MN[mo]+" "+yr;setTimeout(function(){try{window.print();}catch(e){doExpH();}},100);},[mo,yr,doExpH]);
 
@@ -325,11 +342,12 @@ export default function App(){
 
   if(!loaded)return(<div style={{padding:40,textAlign:"center",color:"#64748b"}}>Caricamento...</div>);
 
-  return(<div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",maxWidth:1500,margin:"0 auto",padding:"10px 14px",color:"#1e293b",fontSize:13}}>
+  return(<div style={{fontFamily:"'DM Sans','Segoe UI',system-ui,sans-serif",maxWidth:1500,margin:"0 auto",padding:"16px 20px",color:"#1e293b",fontSize:13,background:"#f8fafc",minHeight:"100vh"}}>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
     <style>{PCSS}</style>
     <Modal show={!!modal} title={modal?modal.title:""} msg={modal?modal.msg:""} onOk={modal?modal.onOk:null} onCancel={function(){sM(null);}}/>
     <div className="no-print" style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8,flexWrap:"wrap",gap:8}}>
-      <div style={{display:"flex",alignItems:"baseline",gap:10}}><span style={{fontSize:18,fontWeight:800}}>CML Catania</span><span style={{fontSize:12,color:"#64748b"}}>Planning</span></div>
+      <div style={{display:"flex",alignItems:"baseline",gap:10}}><span style={{fontSize:20,fontWeight:800,background:"linear-gradient(135deg,#1e40af,#7c3aed)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>CML Catania</span><span style={{fontSize:12,color:"#94a3b8",fontWeight:500}}>Planning Mensile</span></div>
       <div style={{display:"flex",alignItems:"center",gap:6}}>
         <button onClick={doSave} style={Object.assign({},cs.bp,{background:saved?"#16a34a":"#dc2626",padding:"5px 14px",fontSize:12})}>{saved?"\u2713 Salvato":"Salva"}</button>
         <button onClick={doExpJ} style={Object.assign({},cs.bs,{fontSize:11,padding:"4px 8px"})}>{"\u2B07"}JSON</button>
@@ -342,9 +360,9 @@ export default function App(){
       </div>
     </div>
     <div className="no-print" style={{display:"flex",gap:1,marginBottom:12,borderBottom:"2px solid #e2e8f0",flexWrap:"wrap"}}>
-      {TABS.map(function(t){return(<button key={t} onClick={function(){sTab(t);}} style={{padding:"6px 14px",border:"none",cursor:"pointer",fontWeight:tab===t?700:400,color:tab===t?"#1e40af":"#64748b",background:tab===t?"#eff6ff":"transparent",borderBottom:tab===t?"2px solid #1e40af":"2px solid transparent",borderRadius:"6px 6px 0 0",fontSize:13}}>{t}</button>);})}</div>
+      {TABS.map(function(t){return(<button key={t} onClick={function(){sTab(t);}} style={{padding:"6px 14px",border:"none",cursor:"pointer",fontWeight:tab===t?700:400,color:tab===t?"#1e40af":"#64748b",background:tab===t?"#eff6ff":"transparent",borderBottom:"none",borderRadius:20,margin:"0 2px",fontSize:13}}>{t}</button>);})}</div>
 
-    {tab==="Mese"&&<VMese yr={yr} mo={mo} nd={nd} users={users} sn={sn} gS={gS} dOv={dOv} asg={asg} sAS={sAS} eInd={eInd} doGen={doGen} doExpH={doExpH} doPrint={doPrint} mLk={mLk} sLk={sLk}/>}
+    {tab==="Mese"&&<VMese yr={yr} mo={mo} nd={nd} users={users} sn={sn} gS={gS} dOv={dOv} asg={asg} sAS={sAS} eInd={eInd} doGen={doGen} doExpH={doExpH} doPrint={doPrint} mLk={mLk} sLk={sLk} alerts={genAlerts}/>}
     {tab==="Slot"&&<VSlot gS={gS} sGS={sGS} yr={yr} mo={mo} nd={nd} dOv={dOv} sDO={sDO}/>}
     {tab==="Indispo"&&<VInd yr={yr} mo={mo} nd={nd} users={users} sn={sn} exc={exc} sEx={sEx} swExc={swExc} sSW={sSW} eInd={eInd}/>}
     {tab==="Utenti"&&<VUt users={users} sU={sU} sn={sn} sM={sM}/>}
@@ -356,14 +374,13 @@ export default function App(){
 
 /* ═══════════ MESE — drag-drop, lock, filtered dropdown ═══════════ */
 function VMese(p){
-  var yr=p.yr,mo=p.mo,nd=p.nd,users=p.users,sn=p.sn,dOv=p.dOv,asg=p.asg,sAS=p.sAS,eInd=p.eInd,mLk=p.mLk,sLk=p.sLk;
+  var yr=p.yr,mo=p.mo,nd=p.nd,users=p.users,sn=p.sn,dOv=p.dOv,asg=p.asg,sAS=p.sAS,eInd=p.eInd,mLk=p.mLk,sLk=p.sLk,alerts=p.alerts||{};
   var days=[];for(var i=1;i<=nd;i++)days.push(i);
   var[edit,sEdit]=useState(null);
-  var[drag,sDrag]=useState(null); // {dk,code,idx,uid}
+  var[alertDay,sAlertDay]=useState(null); // dateKey for alert modal
+  var dragRef=useRef(null); // ref to avoid stale closure
 
-  // Direct state mutation helper
   var modDay=function(fn){sAS(function(prev){return fn(JSON.parse(JSON.stringify(prev)));});};
-
   var swapCell=function(dk2,code,idx,uid){modDay(function(o){if(!o[dk2])o[dk2]={};var a=o[dk2][code]||[];a[idx]=uid;o[dk2][code]=a;return o;});sEdit(null);};
   var rmCell=function(dk2,code,idx){modDay(function(o){if(!o[dk2])o[dk2]={};var a=o[dk2][code]||[];a.splice(idx,1);o[dk2][code]=a;return o;});sEdit(null);};
   var addCell=function(dk2,code,uid){modDay(function(o){if(!o[dk2])o[dk2]={};var a=o[dk2][code]||[];a.push(uid);o[dk2][code]=a;return o;});sEdit(null);};
@@ -374,13 +391,13 @@ function VMese(p){
     var di=eInd[dk2]||{};
     return users.filter(function(u){
       if(u.vo)return false;
-      if(di[u.id])return false;
+      if(di[u.id])return false; // unavail/SW/N-D
       if(used.has(u.id)){return exIdx!==undefined&&(da[code]||[])[exIdx]===u.id;}
       return true;
     });
   };
 
-  // Lock toggle
+  // Lock toggle for a day+activity
   var togLock=function(dk2,code){
     sLk(function(prev){
       var c=Object.assign({},prev);
@@ -392,46 +409,66 @@ function VMese(p){
     });
   };
 
-  // Drag handlers — SWAP logic
-  var onDS=function(dk2,code,idx,uid){sDrag({dk:dk2,code:code,idx:idx,uid:uid});};
-  var onDO=function(e){e.preventDefault();};
-  var onDrop=function(tgtDk,tgtCode,tgtIdx){
-    if(!drag)return;
+  // Drag handlers — using ref to avoid stale closure
+  var onDS=function(e,dk2,code,idx,uid){
+    dragRef.current={dk:dk2,code:code,idx:idx,uid:uid};
+    e.dataTransfer.effectAllowed="move";
+    try{e.dataTransfer.setData("text/plain",uid);}catch(ex){}
+  };
+  var onDO=function(e){e.preventDefault();e.dataTransfer.dropEffect="move";};
+  var onDrop=function(e,tgtDk,tgtCode,tgtIdx){
+    e.preventDefault();
+    var dr=dragRef.current;
+    if(!dr)return;
+    dragRef.current=null;
+    // Same source and target — skip
+    if(dr.dk===tgtDk&&dr.code===tgtCode&&dr.idx===tgtIdx)return;
     modDay(function(o){
-      // Source
-      if(!o[drag.dk])o[drag.dk]={};
-      var srcArr=o[drag.dk][drag.code]||[];
-      // Target
+      if(!o[dr.dk])o[dr.dk]={};
+      var srcArr=(o[dr.dk][dr.code]||[]).slice();
       if(!o[tgtDk])o[tgtDk]={};
-      var tgtArr=o[tgtDk][tgtCode]||[];
-
-      var srcUid=drag.uid;
+      var tgtArr=(o[tgtDk][tgtCode]||[]).slice();
+      var srcUid=dr.uid;
       var tgtUid=(tgtIdx<tgtArr.length)?tgtArr[tgtIdx]:null;
-
-      // Place dragged uid at target
-      if(tgtIdx<tgtArr.length){
-        tgtArr[tgtIdx]=srcUid;
-      } else {
-        tgtArr.push(srcUid);
-      }
-
-      // Place displaced uid at source (swap) or remove source
-      if(tgtUid){
-        srcArr[drag.idx]=tgtUid; // swap
-      } else {
-        srcArr.splice(drag.idx,1); // no swap target, just remove from source
-      }
-
-      o[drag.dk][drag.code]=srcArr;
+      // Place dragged at target
+      if(tgtIdx<tgtArr.length){tgtArr[tgtIdx]=srcUid;}
+      else{tgtArr.push(srcUid);}
+      // Swap or remove from source
+      if(tgtUid){srcArr[dr.idx]=tgtUid;} // swap
+      else{srcArr.splice(dr.idx,1);} // move (remove source)
+      o[dr.dk][dr.code]=srcArr;
       o[tgtDk][tgtCode]=tgtArr;
       return o;
     });
-    sDrag(null);
   };
 
   var PA=["CIC","NIC","NICSP","NICMIN","VD","CIECHI","VDOM","PU"];
 
+  // Alert detail modal
+  var alertModal=null;
+  if(alertDay&&alerts[alertDay]){
+    var dayA=alerts[alertDay];
+    var dayLabel=alertDay.replace(/^\d+-0?(\d+)-0?(\d+)$/,function(_,m,d){return d+"/"+m;});
+    alertModal=(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999}} onClick={function(e){if(e.target===e.currentTarget)sAlertDay(null);}}>
+      <div style={{background:"#fff",borderRadius:14,padding:"20px 24px",maxWidth:500,width:"92%",boxShadow:"0 12px 40px rgba(0,0,0,.25)",maxHeight:"80vh",overflow:"auto"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <span style={{fontWeight:700,fontSize:15,color:"#b45309"}}>{"⚠"} Avvisi del {dayLabel}</span>
+          <button onClick={function(){sAlertDay(null);}} style={{background:"none",border:"none",fontSize:18,cursor:"pointer",color:"#94a3b8"}}>{"✕"}</button>
+        </div>
+        {dayA.map(function(al,i){
+          var cl=COL[al.code];
+          return(<div key={i} style={{background:cl?cl.bg+"40":"#f8fafc",border:"1px solid "+(cl?cl.bd:"#e2e8f0"),borderRadius:8,padding:"10px 14px",marginBottom:8}}>
+            <div style={{fontWeight:700,fontSize:13,color:cl?cl.tx:"#334155",marginBottom:4}}>{al.code}: {al.got}/{al.expected} {al.unit}</div>
+            <div style={{fontSize:12,color:"#475569",lineHeight:1.5}}>{al.reason}</div>
+          </div>);
+        })}
+        <p style={{fontSize:11,color:"#94a3b8",marginTop:8}}>Usa il <b>+</b> nelle celle per aggiungere manualmente i componenti mancanti.</p>
+      </div>
+    </div>);
+  }
+
   return(<div>
+    {alertModal}
     <div className="no-print" style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:6}}>
       {OPD.filter(function(a){return COL[a.code];}).map(function(a){return(<span key={a.code} style={tg(a.code)}>{a.label}</span>);})}</div>
     <div className="no-print" style={{display:"flex",gap:8,marginBottom:6,flexWrap:"wrap"}}>
@@ -452,8 +489,12 @@ function VMese(p){
             var k=dk(yr,mo,d),we=isWE(yr,mo,d),hol=isH(yr,mo,d),off=we||!!hol,da=asg[k]||{},di=eInd[k]||{};
             var bg=hol?"#fee2e2":we?"#f1f5f9":(d%2===0?"#fafafc":"#fff");var dc=hol?"#dc2626":we?"#94a3b8":"#334155";
             var lbl=dn(yr,mo,d)+" "+d+(hol?" "+hol:"");
+            var dayAlerts=alerts[k]||[];
             return(<tr key={d} style={{background:bg}}>
-              <td style={Object.assign({},cs.c,{fontWeight:600,whiteSpace:"nowrap",color:dc,fontSize:hol?10:11})}>{lbl}</td>
+              <td style={Object.assign({},cs.c,{fontWeight:600,whiteSpace:"nowrap",color:dc,fontSize:hol?10:11})}>
+                {lbl}
+                {dayAlerts.length>0&&<button className="no-print" onClick={function(){sAlertDay(k);}} style={{background:"#fef3c7",border:"1px solid #f59e0b",borderRadius:10,color:"#b45309",fontSize:9,fontWeight:700,marginLeft:4,padding:"0 4px",cursor:"pointer",lineHeight:1.4}} title={dayAlerts.length+" avvisi"}>{"⚠"}{dayAlerts.length}</button>}
+              </td>
               {OPD.map(function(a){
                 if(off)return(<td key={a.code} style={Object.assign({},cs.c,{background:bg})}/>);
                 var ov=dOv[k]&&dOv[k][a.code];var en=ov?(ov.enabled!==false):true;
@@ -479,9 +520,9 @@ function VMese(p){
                     </select>);
                   }
                   return(<div key={idx} draggable="true"
-                    onDragStart={function(){onDS(k,a.code,idx,uid);}}
+                    onDragStart={function(e){onDS(e,k,a.code,idx,uid);}}
                     onDragOver={onDO}
-                    onDrop={function(){onDrop(k,a.code,idx);}}
+                    onDrop={function(e){onDrop(e,k,a.code,idx);}}
                     onClick={function(){sEdit({dk:k,code:a.code,idx:idx});}}
                     style={{color:c?c.tx:"#334155",lineHeight:1.25,cursor:"grab",
                       fontWeight:isStr?700:400,
@@ -510,7 +551,7 @@ function VMese(p){
 
                 return(<td key={a.code} style={Object.assign({},cs.c,{background:c?(c.bg+"60"):"#fff",textAlign:"center",fontSize:9,padding:"2px",
                   outline:isLocked?"2px solid #f59e0b":"none"})}
-                  onDragOver={onDO} onDrop={function(){onDrop(k,a.code,uids.length);}}>
+                  onDragOver={onDO} onDrop={function(e){onDrop(e,k,a.code,uids.length);}}>
                   {cc}</td>);
               })}
               <td style={Object.assign({},cs.c,{fontSize:9})}>
