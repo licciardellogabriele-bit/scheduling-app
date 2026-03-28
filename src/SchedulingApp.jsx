@@ -446,23 +446,45 @@ function VMese(p){
 
   // Alert detail modal
   var alertModal=null;
-  if(alertDay&&alerts[alertDay]){
-    var dayA=alerts[alertDay];
+  if(alertDay){
+    var dayA=alerts[alertDay]||[];
     var dayLabel=alertDay.replace(/^\d+-0?(\d+)-0?(\d+)$/,function(_,m,d){return d+"/"+m;});
+    // Compute unplaced for this day
+    var adDa=asg[alertDay]||{};var adDi=eInd[alertDay]||{};
+    var adUsed=new Set();Object.values(adDa).forEach(function(arr){(arr||[]).forEach(function(uid){if(uid)adUsed.add(uid);});});
+    var adParts=alertDay.split("-");var adD=parseInt(adParts[2],10);var adDow=new Date(yr,mo,adD).getDay();
+    var unplacedUsers=users.filter(function(u){
+      if(u.vo)return false;if(adDi[u.id])return false;
+      if(!u.wd.includes(adDow)||u.swDay===adDow)return false;
+      return !adUsed.has(u.id);
+    });
     alertModal=(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999}} onClick={function(e){if(e.target===e.currentTarget)sAlertDay(null);}}>
       <div style={{background:"#fff",borderRadius:14,padding:"20px 24px",maxWidth:500,width:"92%",boxShadow:"0 12px 40px rgba(0,0,0,.25)",maxHeight:"80vh",overflow:"auto"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-          <span style={{fontWeight:700,fontSize:15,color:"#b45309"}}>{"⚠"} Avvisi del {dayLabel}</span>
+          <span style={{fontWeight:700,fontSize:15,color:dayA.length>0?"#b45309":"#1e40af"}}>{dayA.length>0?"⚠":"ℹ️"} Giorno {dayLabel}</span>
           <button onClick={function(){sAlertDay(null);}} style={{background:"none",border:"none",fontSize:18,cursor:"pointer",color:"#94a3b8"}}>{"✕"}</button>
         </div>
-        {dayA.map(function(al,i){
-          var cl=COL[al.code];
-          return(<div key={i} style={{background:cl?cl.bg+"40":"#f8fafc",border:"1px solid "+(cl?cl.bd:"#e2e8f0"),borderRadius:8,padding:"10px 14px",marginBottom:8}}>
-            <div style={{fontWeight:700,fontSize:13,color:cl?cl.tx:"#334155",marginBottom:4}}>{al.code}: {al.got}/{al.expected} {al.unit}</div>
-            <div style={{fontSize:12,color:"#475569",lineHeight:1.5}}>{al.reason}</div>
-          </div>);
-        })}
-        <p style={{fontSize:11,color:"#94a3b8",marginTop:8}}>Usa il <b>+</b> nelle celle per aggiungere manualmente i componenti mancanti.</p>
+        {dayA.length>0&&<div style={{marginBottom:12}}>
+          <div style={{fontSize:12,fontWeight:600,color:"#b45309",marginBottom:6}}>Commissioni incomplete:</div>
+          {dayA.map(function(al,i){
+            var cl=COL[al.code];
+            return(<div key={i} style={{background:cl?cl.bg+"40":"#f8fafc",border:"1px solid "+(cl?cl.bd:"#e2e8f0"),borderRadius:8,padding:"10px 14px",marginBottom:6}}>
+              <div style={{fontWeight:700,fontSize:13,color:cl?cl.tx:"#334155",marginBottom:4}}>{al.code}: {al.got}/{al.expected} {al.unit}</div>
+              <div style={{fontSize:12,color:"#475569",lineHeight:1.5}}>{al.reason}</div>
+            </div>);
+          })}
+        </div>}
+        {unplacedUsers.length>0&&<div>
+          <div style={{fontSize:12,fontWeight:600,color:"#1e40af",marginBottom:6}}>Non assegnati ({unplacedUsers.length}):</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+            {unplacedUsers.map(function(u){
+              var isStr=u.ct==="STR";
+              return(<span key={u.id} style={{background:isStr?"#e0e7ff":"#cffafe",color:isStr?"#3730a3":"#155e75",fontSize:11,fontWeight:isStr?700:500,padding:"2px 8px",borderRadius:6,border:"1px solid "+(isStr?"#a5b4fc":"#67e8f9")}}>{u.ml?"ML ":""}{sn[u.id]}</span>);
+            })}
+          </div>
+        </div>}
+        {dayA.length===0&&unplacedUsers.length===0&&<div style={{color:"#16a34a",fontSize:13}}>Tutto regolare, nessun residuo.</div>}
+        <p style={{fontSize:11,color:"#94a3b8",marginTop:10}}>Usa il <b>+</b> nelle celle per assegnare manualmente.</p>
       </div>
     </div>);
   }
@@ -489,11 +511,31 @@ function VMese(p){
             var k=dk(yr,mo,d),we=isWE(yr,mo,d),hol=isH(yr,mo,d),off=we||!!hol,da=asg[k]||{},di=eInd[k]||{};
             var bg=hol?"#fee2e2":we?"#f1f5f9":(d%2===0?"#fafafc":"#fff");var dc=hol?"#dc2626":we?"#94a3b8":"#334155";
             var lbl=dn(yr,mo,d)+" "+d+(hol?" "+hol:"");
-            var dayAlerts=alerts[k]||[];
+            var dayAlerts=(alerts[k]||[]).slice();
+            // Live: count available vs assigned
+            var dayAvail=0,dayPlaced=0;
+            if(!off){
+              users.forEach(function(u){
+                if(u.vo)return;
+                if(di[u.id])return; // unavail
+                var ddow=new Date(yr,mo,d).getDay();
+                if(!u.wd.includes(ddow)||u.swDay===ddow)return;
+                dayAvail++;
+              });
+              var usedSet=new Set();
+              Object.values(da).forEach(function(arr){(arr||[]).forEach(function(uid){if(uid)usedSet.add(uid);});});
+              dayPlaced=usedSet.size;
+            }
+            var unplaced=Math.max(0,dayAvail-dayPlaced);
+            var hasAlerts=dayAlerts.length>0;
             return(<tr key={d} style={{background:bg}}>
               <td style={Object.assign({},cs.c,{fontWeight:600,whiteSpace:"nowrap",color:dc,fontSize:hol?10:11})}>
                 {lbl}
-                {dayAlerts.length>0&&<button className="no-print" onClick={function(){sAlertDay(k);}} style={{background:"#fef3c7",border:"1px solid #f59e0b",borderRadius:10,color:"#b45309",fontSize:9,fontWeight:700,marginLeft:4,padding:"0 4px",cursor:"pointer",lineHeight:1.4}} title={dayAlerts.length+" avvisi"}>{"⚠"}{dayAlerts.length}</button>}
+                {!off&&<span className="no-print" style={{marginLeft:4,display:"inline-flex",alignItems:"center",gap:3}}>
+                  {hasAlerts?<button onClick={function(){sAlertDay(k);}} style={{background:"#fef3c7",border:"1px solid #f59e0b",borderRadius:10,color:"#b45309",fontSize:9,fontWeight:700,padding:"0 5px",cursor:"pointer",lineHeight:1.5}} title={dayAlerts.length+" commissioni incomplete"}>{"\u26A0"}{dayAlerts.length}</button>
+                  :<button onClick={function(){sAlertDay(k);}} style={{background:"none",border:"none",color:"#16a34a",fontSize:11,fontWeight:700,cursor:"pointer",padding:0}}>{"\u2713"}</button>}
+                  {unplaced>0&&<button onClick={function(){sAlertDay(k);}} style={{background:"#dbeafe",color:"#1e40af",fontSize:8,fontWeight:700,borderRadius:8,padding:"0 4px",lineHeight:1.5,cursor:"pointer",border:"1px solid #93c5fd"}} title={unplaced+" disponibil"+(unplaced===1?"e":"i")+" non assegnat"+(unplaced===1?"o":"i")}>{unplaced}</button>}
+                </span>}
               </td>
               {OPD.map(function(a){
                 if(off)return(<td key={a.code} style={Object.assign({},cs.c,{background:bg})}/>);
