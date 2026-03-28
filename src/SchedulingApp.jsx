@@ -421,23 +421,31 @@ function VMese(p){
     var dr=dragRef.current;
     if(!dr)return;
     dragRef.current=null;
-    // Same source and target — skip
     if(dr.dk===tgtDk&&dr.code===tgtCode&&dr.idx===tgtIdx)return;
     modDay(function(o){
       if(!o[dr.dk])o[dr.dk]={};
-      var srcArr=(o[dr.dk][dr.code]||[]).slice();
       if(!o[tgtDk])o[tgtDk]={};
-      var tgtArr=(o[tgtDk][tgtCode]||[]).slice();
-      var srcUid=dr.uid;
-      var tgtUid=(tgtIdx<tgtArr.length)?tgtArr[tgtIdx]:null;
-      // Place dragged at target
-      if(tgtIdx<tgtArr.length){tgtArr[tgtIdx]=srcUid;}
-      else{tgtArr.push(srcUid);}
-      // Swap or remove from source
-      if(tgtUid){srcArr[dr.idx]=tgtUid;} // swap
-      else{srcArr.splice(dr.idx,1);} // move (remove source)
-      o[dr.dk][dr.code]=srcArr;
-      o[tgtDk][tgtCode]=tgtArr;
+      // Same day + same activity → swap within one array
+      if(dr.dk===tgtDk&&dr.code===tgtCode){
+        var arr=(o[dr.dk][dr.code]||[]).slice();
+        var tgtUid=(tgtIdx<arr.length)?arr[tgtIdx]:null;
+        if(tgtIdx<arr.length){arr[tgtIdx]=dr.uid;}
+        else{arr.push(dr.uid);}
+        if(tgtUid){arr[dr.idx]=tgtUid;}
+        else{arr.splice(dr.idx,1);}
+        o[dr.dk][dr.code]=arr;
+      } else {
+        // Different column/day → two separate arrays
+        var srcArr=(o[dr.dk][dr.code]||[]).slice();
+        var tgtArr=(o[tgtDk][tgtCode]||[]).slice();
+        var tgtUid2=(tgtIdx<tgtArr.length)?tgtArr[tgtIdx]:null;
+        if(tgtIdx<tgtArr.length){tgtArr[tgtIdx]=dr.uid;}
+        else{tgtArr.push(dr.uid);}
+        if(tgtUid2){srcArr[dr.idx]=tgtUid2;}
+        else{srcArr.splice(dr.idx,1);}
+        o[dr.dk][dr.code]=srcArr;
+        o[tgtDk][tgtCode]=tgtArr;
+      }
       return o;
     });
   };
