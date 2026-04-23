@@ -8,7 +8,7 @@ var ACT=[
 {code:"NICSP",label:"NIC sperim.",def:1,cat:"com",alloc:"fix",ord:4,pair:true},
 {code:"CIECHI",label:"Ciechi",def:1,cat:"com",alloc:"fix",ord:5,pair:true},
 {code:"NICMIN",label:"NIC minori",def:1,cat:"com",alloc:"fix",ord:6,pair:true},
-{code:"NIC",label:"NIC",def:3,cat:"com",alloc:"fix",ord:7,pair:true},
+{code:"NIC",label:"NIC",def:6,cat:"com",alloc:"fix",ord:7,pair:true},
 {code:"VDOM",label:"V. Domiciliari",def:0,cat:"com",alloc:"pre",ord:50,pair:true},
 {code:"PU",label:"Prest.Universale",def:0,cat:"pc",alloc:"pre",ord:51,pair:true},
 {code:"VALID",label:"VALIDAZIONI",def:0,cat:"pc",alloc:"dyn",ord:80,pair:false},
@@ -24,14 +24,16 @@ var FIX=ACT.filter(function(a){return a.alloc==="fix";}).sort(function(a,b){retu
 var SLOTABLE=FIX.concat([ACT.find(function(a){return a.code==="NIC";})]);
 var WDS=[{n:1,l:"Lun"},{n:2,l:"Mar"},{n:3,l:"Mer"},{n:4,l:"Gio"},{n:5,l:"Ven"}];
 var COL={CIC:{bg:"#fef3c7",tx:"#92400e",bd:"#fcd34d"},NIC:{bg:"#e0e7ff",tx:"#3730a3",bd:"#a5b4fc"},NICSP:{bg:"#e0f2fe",tx:"#075985",bd:"#7dd3fc"},NICMIN:{bg:"#ddd6fe",tx:"#6d28d9",bd:"#a78bfa"},VD:{bg:"#d1fae5",tx:"#065f46",bd:"#6ee7b7"},VDOM:{bg:"#a7f3d0",tx:"#064e3b",bd:"#34d399"},PU:{bg:"#fef9c3",tx:"#854d0e",bd:"#fde047"},VALID:{bg:"#fce7f3",tx:"#9d174d",bd:"#f9a8d4"},222:{bg:"#ede9fe",tx:"#5b21b6",bd:"#c4b5fd"},ASP:{bg:"#cffafe",tx:"#155e75",bd:"#67e8f9"},CIECHI:{bg:"#ffe4e6",tx:"#9f1239",bd:"#fda4af"}};
-var VDOM_PAIRS=[["Costa Manuela","Arcifa Veronica"],["Ligreggi Antonella","Scifo Nicole"],["Liuzzo Ludovico","Grieco Angela"],["Di Paola Danila","Iosia Serena"],["Palmeri Andrea","Tumino Mariagrazia"]];
+var VDOM_PAIRS=[["Costa Manuela","Arcifa Veronica"],["Ligreggi Antonella","Scifo Nicole"],["Liuzzo Ludovico","Grieco Angela"],["Di Paola Danila","Iosia Serena"],["Lo Pumo Roberta","Sofia Salvatore"],["Palmeri Andrea","Tumino Mariagrazia"]];
 
 /* ═══════════ USERS ═══════════ */
 var DU=[
 ["Arcifa Veronica",true,"STR",false,true,[1,2,3,4,5],null,false],
 ["Alberio Anna",false,"ACN",false,false,[1,3,4,5],null,false],
+["Amato Chiara",false,"STR",false,false,[1,2,3,4,5],null,false],
 ["Bonfiglio Claudia",true,"STR",true,true,[1,2,3,4,5],4,false],
 ["Calabrese Giorgia",false,"STR",false,false,[1,2,3,4,5],null,false],
+["Caruso Danila",false,"STR",false,false,[1,2,3,4,5],null,false],
 ["Costa Manuela",true,"STR",true,false,[1,2,3,4,5],3,false],
 ["D\u2019Angelo Mariangela",false,"ACN",false,false,[1,2,3,4],null,false],
 ["Di Guardo Caterina",false,"STR",false,false,[1,2,3,4,5],null,false],
@@ -46,10 +48,16 @@ var DU=[
 ["Martines Annamaria",false,"ACN",false,false,[1,2,3],null,false],
 ["Marzullo Isabella",false,"STR",false,false,[1,2,3,4,5],3,false],
 ["Milana Maria Chiara",false,"STR",false,false,[1,2,3,4,5],null,false],
+["Ministeri Federica",true,"STR",false,false,[1,2,3,4,5],null,false],
 ["Monaco Lucia",true,"ACN",false,false,[3,4,5],null,false],
 ["Munciv\u00EC Marina",true,"ACN",false,false,[1,2,3,4],null,false],
+["Nannola Chiara",false,"STR",false,false,[1,2,3,4,5],null,false],
 ["Palmeri Andrea",true,"STR",true,false,[1,2,3,4,5],2,false],
+["Pappalardo Elisa",true,"STR",false,false,[1,2,3,4,5],null,false],
+["Pittari Veronica",false,"STR",false,false,[1,2,3,4,5],null,false],
+["Prossimo Giusi",false,"STR",false,false,[1,2,3,4,5],null,false],
 ["Russo Ilenia",true,"ACN",false,false,[2,3,4,5],null,false],
+["Scalisi Francesco",false,"STR",false,false,[1,2,3,4,5],null,false],
 ["Scifo Nicole",false,"STR",false,false,[1,2,3,4,5],null,true],
 ["Sofia Salvatore",false,"STR",false,false,[1,2,3,4,5],null,false],
 ["Sollima Giovanni",false,"ACN",false,false,[1,2,4],null,false],
@@ -344,7 +352,7 @@ function Modal(p){if(!p.show)return null;return(<div style={{position:"fixed",in
 var TABS=["Mese","Slot","Indispo","Utenti","Regole","Vincoli","Riepilogo"];
 export default function App(){
   var now=new Date();var[yr,sYr]=useState(now.getFullYear());var[mo,sMo]=useState(now.getMonth());var[tab,sTab]=useState("Mese");var[loaded,sL]=useState(false);var[saved,sSv]=useState(true);
-  var[users,sU]=useState(mDU);var[gS,sGS]=useState(mDS);var[inc,sInc]=useState([]);var[dR,sDR]=useState(function(){return{"d4":{"2":["CIC","NIC","VD"]}};});
+  var[users,sU]=useState(mDU);var[gS,sGS]=useState(mDS);var[inc,sInc]=useState(function(){var u=mDU();var n=u.find(function(x){return x.name==="Nannola Chiara";});var l=u.find(function(x){return x.name==="Licciardello Gabriele";});return (n&&l)?[[n.id,l.id]]:[];});var[dR,sDR]=useState(function(){var u=mDU();var c=u.find(function(x){return x.name==="Costa Manuela";});var o={};if(c)o[c.id]={"2":["CIC","NIC","VD"]};return o;});
   var[ovA,sOvA]=useState({});var[asA,sAsA]=useState({});var[genAlerts,sGenAlerts]=useState({});var[exA,sExA]=useState({});var[swE,sSWE]=useState({});var[ntA,sNtA]=useState({});var[locks,sLocks]=useState({});var[modal,sM]=useState(null);
 
   useEffect(function(){sLoad().then(function(s){if(s){var u=sanU(s.users);if(u&&u.length)sU(u);sGS(sanS(s.gS));sInc(sanA(s.inc));if(s.dR)sDR(sanO(s.dR));sOvA(sanO(s.ovA));sAsA(sanO(s.asA));sExA(sanO(s.exA));sSWE(sanO(s.swE));sNtA(sanO(s.ntA));sLocks(sanO(s.locks));}sL(true);});},[]);
@@ -352,7 +360,7 @@ export default function App(){
   var doSave=useCallback(function(){sSave({users:users,gS:gS,inc:inc,dR:dR,ovA:ovA,asA:asA,exA:exA,swE:swE,ntA:ntA,locks:locks}).then(function(){sSv(true);});},[users,gS,inc,dR,ovA,asA,exA,swE,ntA,locks]);
 
   var fileRef=useRef(null);
-  var doExpJ=useCallback(function(){var data={users:users,gS:gS,inc:inc,dR:dR,ovA:ovA,asA:asA,exA:exA,swE:swE,ntA:ntA,locks:locks,_v:"v9"};var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download="CML_backup_"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(a);a.click();document.body.removeChild(a);},[users,gS,inc,dR,ovA,asA,exA,swE,ntA,locks]);
+  var doExpJ=useCallback(function(){var data={users:users,gS:gS,inc:inc,dR:dR,ovA:ovA,asA:asA,exA:exA,swE:swE,ntA:ntA,locks:locks,_v:"v11"};var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download="CML_backup_"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(a);a.click();document.body.removeChild(a);},[users,gS,inc,dR,ovA,asA,exA,swE,ntA,locks]);
   var doImpJ=function(e){var file=e.target.files&&e.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(ev){try{var d=JSON.parse(ev.target.result);var u=sanU(d.users);if(u&&u.length)sU(u);sGS(sanS(d.gS));sInc(sanA(d.inc));if(d.dR)sDR(sanO(d.dR));sOvA(sanO(d.ovA));sAsA(sanO(d.asA));sExA(sanO(d.exA));sSWE(sanO(d.swE||{}));sNtA(sanO(d.ntA));sLocks(sanO(d.locks||{}));sSv(false);sM({title:"OK",msg:"Importato. Clicca Salva.",onOk:function(){sM(null);}});}catch(err){sM({title:"Errore",msg:String(err),onOk:function(){sM(null);}});}};reader.readAsText(file);e.target.value="";};
 
   var mk=yr+"-"+mo;var dOv=ovA[mk]||{};var asg=asA[mk]||{};var exc=exA[mk]||{};var swExc=swE[mk]||{};var mNt=ntA[mk]||"";var mLk=locks[mk]||{};var nd=nD(yr,mo);
@@ -380,7 +388,7 @@ export default function App(){
     <style>{PCSS}</style>
     <Modal show={!!modal} title={modal?modal.title:""} msg={modal?modal.msg:""} onOk={modal?modal.onOk:null} onCancel={function(){sM(null);}}/>
     <div className="no-print" style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8,flexWrap:"wrap",gap:8}}>
-      <div style={{display:"flex",alignItems:"baseline",gap:10}}><span style={{fontSize:20,fontWeight:800,background:"linear-gradient(135deg,#1e40af,#7c3aed)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>CML Catania</span><span style={{fontSize:12,color:"#94a3b8",fontWeight:500}}>Planning Mensile</span></div>
+      <div style={{display:"flex",alignItems:"baseline",gap:10}}><span style={{fontSize:20,fontWeight:800,background:"linear-gradient(135deg,#1e40af,#7c3aed)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>CML Catania</span><span style={{fontSize:12,color:"#94a3b8",fontWeight:500}}>Planning Mensile · v11</span></div>
       <div style={{display:"flex",alignItems:"center",gap:6}}>
         <button onClick={doSave} style={Object.assign({},cs.bp,{background:saved?"#16a34a":"#dc2626",padding:"5px 14px",fontSize:12})}>{saved?"\u2713 Salvato":"Salva"}</button>
         <button onClick={doExpJ} style={Object.assign({},cs.bs,{fontSize:11,padding:"4px 8px"})}>{"\u2B07"}JSON</button>
@@ -455,6 +463,53 @@ function VMese(p){
     if(!dr)return;
     dragRef.current=null;
     if(dr.dk===tgtDk&&dr.code===tgtCode&&dr.idx===tgtIdx)return;
+
+    // VDOM: pair-locked drag (indissoluble pairs)
+    // If source OR target is VDOM, handle as pair move between VDOM slots only
+    if(dr.code==="VDOM"||tgtCode==="VDOM"){
+      // Only allow VDOM ↔ VDOM pair moves
+      if(dr.code!=="VDOM"||tgtCode!=="VDOM")return;
+      modDay(function(o){
+        if(!o[dr.dk])o[dr.dk]={};
+        if(!o[tgtDk])o[tgtDk]={};
+        var srcArr=(o[dr.dk].VDOM||[]).slice();
+        var srcPairStart=Math.floor(dr.idx/2)*2;
+        if(srcPairStart+1>=srcArr.length)return o; // incomplete pair, ignore
+        var srcPair=[srcArr[srcPairStart],srcArr[srcPairStart+1]];
+        // Same day swap: reorder pairs within VDOM of same day
+        if(dr.dk===tgtDk){
+          var arr2=srcArr;
+          var tgtPairStart=Math.floor(tgtIdx/2)*2;
+          if(tgtPairStart===srcPairStart)return o;
+          if(tgtPairStart+1<arr2.length){
+            // Swap two existing pairs
+            var tgtPair=[arr2[tgtPairStart],arr2[tgtPairStart+1]];
+            arr2[srcPairStart]=tgtPair[0];arr2[srcPairStart+1]=tgtPair[1];
+            arr2[tgtPairStart]=srcPair[0];arr2[tgtPairStart+1]=srcPair[1];
+          }
+          o[dr.dk].VDOM=arr2;
+        } else {
+          // Cross-day: swap or move pair
+          var tgtArr=(o[tgtDk].VDOM||[]).slice();
+          var tgtPairStart2=Math.floor(tgtIdx/2)*2;
+          if(tgtPairStart2<tgtArr.length&&tgtPairStart2+1<tgtArr.length){
+            // Full pair at target → swap
+            var tgtPair2=[tgtArr[tgtPairStart2],tgtArr[tgtPairStart2+1]];
+            tgtArr[tgtPairStart2]=srcPair[0];tgtArr[tgtPairStart2+1]=srcPair[1];
+            srcArr[srcPairStart]=tgtPair2[0];srcArr[srcPairStart+1]=tgtPair2[1];
+          } else {
+            // Append pair to target, remove from source
+            tgtArr.push(srcPair[0]);tgtArr.push(srcPair[1]);
+            srcArr.splice(srcPairStart,2);
+          }
+          o[dr.dk].VDOM=srcArr;
+          o[tgtDk].VDOM=tgtArr;
+        }
+        return o;
+      });
+      return;
+    }
+
     modDay(function(o){
       if(!o[dr.dk])o[dr.dk]={};
       if(!o[tgtDk])o[tgtDk]={};
@@ -469,15 +524,15 @@ function VMese(p){
         o[dr.dk][dr.code]=arr;
       } else {
         // Different column/day → two separate arrays
-        var srcArr=(o[dr.dk][dr.code]||[]).slice();
-        var tgtArr=(o[tgtDk][tgtCode]||[]).slice();
-        var tgtUid2=(tgtIdx<tgtArr.length)?tgtArr[tgtIdx]:null;
-        if(tgtIdx<tgtArr.length){tgtArr[tgtIdx]=dr.uid;}
-        else{tgtArr.push(dr.uid);}
-        if(tgtUid2){srcArr[dr.idx]=tgtUid2;}
-        else{srcArr.splice(dr.idx,1);}
-        o[dr.dk][dr.code]=srcArr;
-        o[tgtDk][tgtCode]=tgtArr;
+        var srcArr2=(o[dr.dk][dr.code]||[]).slice();
+        var tgtArr2=(o[tgtDk][tgtCode]||[]).slice();
+        var tgtUid2=(tgtIdx<tgtArr2.length)?tgtArr2[tgtIdx]:null;
+        if(tgtIdx<tgtArr2.length){tgtArr2[tgtIdx]=dr.uid;}
+        else{tgtArr2.push(dr.uid);}
+        if(tgtUid2){srcArr2[dr.idx]=tgtUid2;}
+        else{srcArr2.splice(dr.idx,1);}
+        o[dr.dk][dr.code]=srcArr2;
+        o[tgtDk][tgtCode]=tgtArr2;
       }
       return o;
     });
@@ -591,8 +646,9 @@ function VMese(p){
                 var renderName=function(uid,idx){
                   var u=users.find(function(x){return x.id===uid;});
                   var isStr=u&&u.ct==="STR";
+                  var isVdomCell=a.code==="VDOM";
                   var isEd=edit&&edit.dk===k&&edit.code===a.code&&edit.idx===idx;
-                  if(isEd){
+                  if(isEd&&!isVdomCell){
                     var av=gAv(k,a.code,idx);
                     return(<select key={idx} autoFocus value={uid||""} style={Object.assign({},cs.inp,{fontSize:9,padding:"1px",width:"100%"})}
                       onChange={function(e){if(e.target.value==="_rm")rmCell(k,a.code,idx);else swapCell(k,a.code,idx,e.target.value);}}
@@ -606,7 +662,8 @@ function VMese(p){
                     onDragStart={function(e){onDS(e,k,a.code,idx,uid);}}
                     onDragOver={onDO}
                     onDrop={function(e){onDrop(e,k,a.code,idx);}}
-                    onClick={function(){sEdit({dk:k,code:a.code,idx:idx});}}
+                    onClick={isVdomCell?undefined:function(){sEdit({dk:k,code:a.code,idx:idx});}}
+                    title={isVdomCell?"Coppia VDOM \u2014 trascina per spostare la coppia intera":undefined}
                     style={{color:c?c.tx:"#334155",lineHeight:1.25,cursor:"grab",
                       fontWeight:isStr?700:400,
                       textTransform:isStr?"uppercase":"none",
@@ -638,11 +695,11 @@ function VMese(p){
                   uids.forEach(function(uid,idx){cc.push(renderName(uid,idx));});
                 }
 
-                // Add + lock buttons
+                // Add + lock buttons (+ hidden for VDOM: pairs are auto-managed)
                 var isAddE=edit&&edit.dk===k&&edit.code===a.code&&edit.idx===-1;
-                if(isAddE){var av3=gAv(k,a.code,undefined);cc.push(<select key="add" autoFocus value="" style={Object.assign({},cs.inp,{fontSize:9,padding:"1px",width:"100%"})} onChange={function(e){if(e.target.value)addCell(k,a.code,e.target.value);}} onBlur={function(){setTimeout(function(){sEdit(null);},150);}}><option value="">Aggiungi...</option>{av3.map(function(u2){return(<option key={u2.id} value={u2.id}>{sn[u2.id]}</option>);})}</select>);}
+                if(isAddE&&a.code!=="VDOM"){var av3=gAv(k,a.code,undefined);cc.push(<select key="add" autoFocus value="" style={Object.assign({},cs.inp,{fontSize:9,padding:"1px",width:"100%"})} onChange={function(e){if(e.target.value)addCell(k,a.code,e.target.value);}} onBlur={function(){setTimeout(function(){sEdit(null);},150);}}><option value="">Aggiungi...</option>{av3.map(function(u2){return(<option key={u2.id} value={u2.id}>{sn[u2.id]}</option>);})}</select>);}
                 else{cc.push(<div key="btns" className="no-print" style={{display:"flex",justifyContent:"center",gap:4,marginTop:1}}>
-                  <button onClick={function(){sEdit({dk:k,code:a.code,idx:-1});}} style={{background:"none",border:"none",color:"#94a3b8",cursor:"pointer",fontSize:10,padding:0}}>+</button>
+                  {a.code!=="VDOM"&&<button onClick={function(){sEdit({dk:k,code:a.code,idx:-1});}} style={{background:"none",border:"none",color:"#94a3b8",cursor:"pointer",fontSize:10,padding:0}}>+</button>}
                   <button onClick={function(){togLock(k,a.code);}} style={{background:"none",border:"none",color:isLocked?"#dc2626":"#cbd5e1",cursor:"pointer",fontSize:9,padding:0}}>{isLocked?"\uD83D\uDD12":"\uD83D\uDD13"}</button>
                 </div>);}
 
