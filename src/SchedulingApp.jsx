@@ -24,7 +24,7 @@ var FIX=ACT.filter(function(a){return a.alloc==="fix";}).sort(function(a,b){retu
 var SLOTABLE=FIX.concat([ACT.find(function(a){return a.code==="NIC";})]);
 var WDS=[{n:1,l:"Lun"},{n:2,l:"Mar"},{n:3,l:"Mer"},{n:4,l:"Gio"},{n:5,l:"Ven"}];
 var COL={CIC:{bg:"#fef3c7",tx:"#92400e",bd:"#fcd34d"},NIC:{bg:"#e0e7ff",tx:"#3730a3",bd:"#a5b4fc"},NICSP:{bg:"#e0f2fe",tx:"#075985",bd:"#7dd3fc"},NICMIN:{bg:"#ddd6fe",tx:"#6d28d9",bd:"#a78bfa"},VD:{bg:"#d1fae5",tx:"#065f46",bd:"#6ee7b7"},VDOM:{bg:"#a7f3d0",tx:"#064e3b",bd:"#34d399"},PU:{bg:"#fef9c3",tx:"#854d0e",bd:"#fde047"},VALID:{bg:"#fce7f3",tx:"#9d174d",bd:"#f9a8d4"},222:{bg:"#ede9fe",tx:"#5b21b6",bd:"#c4b5fd"},ASP:{bg:"#cffafe",tx:"#155e75",bd:"#67e8f9"},CIECHI:{bg:"#ffe4e6",tx:"#9f1239",bd:"#fda4af"}};
-var VDOM_PAIRS=[["Costa Manuela","Arcifa Veronica"],["Ligreggi Antonella","Scifo Nicole"],["Liuzzo Ludovico","Grieco Angela"],["Di Paola Danila","Iosia Serena"],["Lo Pumo Roberta","Sofia Salvatore"],["Palmeri Andrea","Tumino Mariagrazia"]];
+var VDOM_PAIRS=[["Costa Manuela","Arcifa Veronica"],["Ligreggi Antonella","Scifo Nicole"],["Liuzzo Ludovico","Grieco Angela"],["Di Paola Danila","Iosia Serena"],["Lo Pumo Roberta","Sofia Salvatore"],["Palmeri Andrea","Tumino Mariagrazia"],["Bonfiglio Claudia","Spina Anna"]];
 
 /* ═══════════ USERS ═══════════ */
 var DU=[
@@ -35,17 +35,16 @@ var DU=[
 ["Calabrese Giorgia",false,"STR",false,false,[1,2,3,4,5],null,false],
 ["Caruso Danila",false,"STR",false,false,[1,2,3,4,5],null,false],
 ["Costa Manuela",true,"STR",true,false,[1,2,3,4,5],3,false],
-["D\u2019Angelo Mariangela",false,"ACN",false,false,[1,2,3,4],null,false],
 ["Di Guardo Caterina",false,"STR",false,false,[1,2,3,4,5],null,false],
 ["Di Paola Danila",true,"STR",false,false,[1,2,3,4,5],3,false],
 ["Grieco Angela",true,"STR",true,false,[1,2,3,4,5],4,false],
 ["Iosia Serena",true,"STR",true,false,[1,2,3,4,5],4,false],
-["La Delfa Rosalba",false,"STR",false,false,[1,2,3,4,5],null,false],
+["La Delfa Rosalba",true,"STR",false,false,[1,2,3,4,5],null,false],
 ["Licciardello Gabriele",true,"ACN",false,false,[1,2,3,4,5],null,false],
 ["Ligreggi Antonella",true,"STR",true,false,[1,2,3,4,5],1,false],
 ["Liuzzo Ludovico",true,"STR",true,false,[1,2,3,4,5],4,false],
-["Lo Pumo Roberta",false,"STR",false,false,[1,2,3,4,5],null,false],
-["Martines Annamaria",false,"ACN",false,false,[1,2,3],null,false],
+["Lo Pumo Roberta",true,"STR",false,false,[1,2,3,4,5],null,false],
+["Martines Annamaria",true,"ACN",false,false,[1,2,3],null,false],
 ["Marzullo Isabella",false,"STR",false,false,[1,2,3,4,5],3,false],
 ["Milana Maria Chiara",false,"STR",false,false,[1,2,3,4,5],null,false],
 ["Ministeri Federica",true,"STR",false,false,[1,2,3,4,5],null,false],
@@ -59,7 +58,7 @@ var DU=[
 ["Russo Ilenia",true,"ACN",false,false,[2,3,4,5],null,false],
 ["Scalisi Francesco",false,"STR",false,false,[1,2,3,4,5],null,false],
 ["Scifo Nicole",false,"STR",false,false,[1,2,3,4,5],null,true],
-["Sofia Salvatore",false,"STR",false,false,[1,2,3,4,5],null,false],
+["Sofia Salvatore",true,"STR",false,false,[1,2,3,4,5],null,false],
 ["Sollima Giovanni",false,"ACN",false,false,[1,2,4],null,false],
 ["Spina Anna",true,"STR",true,false,[1,2,3,4,5],2,false],
 ["Tumino Mariagrazia",true,"STR",false,false,[1,2,3,4,5],null,true],
@@ -360,7 +359,7 @@ export default function App(){
   var doSave=useCallback(function(){sSave({users:users,gS:gS,inc:inc,dR:dR,ovA:ovA,asA:asA,exA:exA,swE:swE,ntA:ntA,locks:locks}).then(function(){sSv(true);});},[users,gS,inc,dR,ovA,asA,exA,swE,ntA,locks]);
 
   var fileRef=useRef(null);
-  var doExpJ=useCallback(function(){var data={users:users,gS:gS,inc:inc,dR:dR,ovA:ovA,asA:asA,exA:exA,swE:swE,ntA:ntA,locks:locks,_v:"v11"};var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download="CML_backup_"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(a);a.click();document.body.removeChild(a);},[users,gS,inc,dR,ovA,asA,exA,swE,ntA,locks]);
+  var doExpJ=useCallback(function(){var data={users:users,gS:gS,inc:inc,dR:dR,ovA:ovA,asA:asA,exA:exA,swE:swE,ntA:ntA,locks:locks,_v:"v12"};var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download="CML_backup_"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(a);a.click();document.body.removeChild(a);},[users,gS,inc,dR,ovA,asA,exA,swE,ntA,locks]);
   var doImpJ=function(e){var file=e.target.files&&e.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(ev){try{var d=JSON.parse(ev.target.result);var u=sanU(d.users);if(u&&u.length)sU(u);sGS(sanS(d.gS));sInc(sanA(d.inc));if(d.dR)sDR(sanO(d.dR));sOvA(sanO(d.ovA));sAsA(sanO(d.asA));sExA(sanO(d.exA));sSWE(sanO(d.swE||{}));sNtA(sanO(d.ntA));sLocks(sanO(d.locks||{}));sSv(false);sM({title:"OK",msg:"Importato. Clicca Salva.",onOk:function(){sM(null);}});}catch(err){sM({title:"Errore",msg:String(err),onOk:function(){sM(null);}});}};reader.readAsText(file);e.target.value="";};
 
   var mk=yr+"-"+mo;var dOv=ovA[mk]||{};var asg=asA[mk]||{};var exc=exA[mk]||{};var swExc=swE[mk]||{};var mNt=ntA[mk]||"";var mLk=locks[mk]||{};var nd=nD(yr,mo);
@@ -388,7 +387,7 @@ export default function App(){
     <style>{PCSS}</style>
     <Modal show={!!modal} title={modal?modal.title:""} msg={modal?modal.msg:""} onOk={modal?modal.onOk:null} onCancel={function(){sM(null);}}/>
     <div className="no-print" style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8,flexWrap:"wrap",gap:8}}>
-      <div style={{display:"flex",alignItems:"baseline",gap:10}}><span style={{fontSize:20,fontWeight:800,background:"linear-gradient(135deg,#1e40af,#7c3aed)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>CML Catania</span><span style={{fontSize:12,color:"#94a3b8",fontWeight:500}}>Planning Mensile · v11</span></div>
+      <div style={{display:"flex",alignItems:"baseline",gap:10}}><span style={{fontSize:20,fontWeight:800,background:"linear-gradient(135deg,#1e40af,#7c3aed)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>CML Catania</span><span style={{fontSize:12,color:"#94a3b8",fontWeight:500}}>Planning Mensile · v12</span></div>
       <div style={{display:"flex",alignItems:"center",gap:6}}>
         <button onClick={doSave} style={Object.assign({},cs.bp,{background:saved?"#16a34a":"#dc2626",padding:"5px 14px",fontSize:12})}>{saved?"\u2713 Salvato":"Salva"}</button>
         <button onClick={doExpJ} style={Object.assign({},cs.bs,{fontSize:11,padding:"4px 8px"})}>{"\u2B07"}JSON</button>
