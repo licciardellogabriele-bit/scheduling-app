@@ -126,6 +126,21 @@ function sanU(r){if(!Array.isArray(r)||!r.length)return null;return r.map(functi
   if(u.e222)as["222"]={al:true,w:(as["222"]&&as["222"].w)||1};
   return{id:u.id,name:String(u.name),ml:!!u.ml,ct:u.ct||"STR",e222:!!u.e222,eCi:!!u.eCi,wd:Array.isArray(u.wd)?u.wd:[1,2,3,4,5],swDay:typeof u.swDay==="number"?u.swDay:null,vo:!!u.vo,notes:u.notes||"",as:as};}).filter(Boolean);}
 function sanO(r){return(r&&typeof r==="object"&&!Array.isArray(r))?r:{};}
+// Sanitize ovA: remove stale slots=0 entries (legacy bug from inverted toggle)
+function sanOv(r){
+  if(!r||typeof r!=="object")return {};
+  Object.keys(r).forEach(function(mk){
+    var month=r[mk];if(!month||typeof month!=="object")return;
+    Object.keys(month).forEach(function(dk){
+      var day=month[dk];if(!day||typeof day!=="object")return;
+      Object.keys(day).forEach(function(code){
+        var ov=day[code];if(!ov||typeof ov!=="object")return;
+        if(ov.slots===0)delete ov.slots; // 0 slots is always meaningless leftover
+      });
+    });
+  });
+  return r;
+}
 function sanA(r){return Array.isArray(r)?r:[];}
 function sanS(r){if(!r||typeof r!=="object")return mDS();var d=mDS();Object.keys(d).forEach(function(k){if(typeof r[k]==="number")d[k]=r[k];});return d;}
 
@@ -354,13 +369,13 @@ export default function App(){
   var[users,sU]=useState(mDU);var[gS,sGS]=useState(mDS);var[inc,sInc]=useState(function(){var u=mDU();var n=u.find(function(x){return x.name==="Nannola Chiara";});var l=u.find(function(x){return x.name==="Licciardello Gabriele";});return (n&&l)?[[n.id,l.id]]:[];});var[dR,sDR]=useState(function(){var u=mDU();var c=u.find(function(x){return x.name==="Costa Manuela";});var o={};if(c)o[c.id]={"2":["CIC","NIC","VD"]};return o;});
   var[ovA,sOvA]=useState({});var[asA,sAsA]=useState({});var[genAlerts,sGenAlerts]=useState({});var[exA,sExA]=useState({});var[swE,sSWE]=useState({});var[ntA,sNtA]=useState({});var[locks,sLocks]=useState({});var[modal,sM]=useState(null);
 
-  useEffect(function(){sLoad().then(function(s){if(s){var u=sanU(s.users);if(u&&u.length)sU(u);sGS(sanS(s.gS));sInc(sanA(s.inc));if(s.dR)sDR(sanO(s.dR));sOvA(sanO(s.ovA));sAsA(sanO(s.asA));sExA(sanO(s.exA));sSWE(sanO(s.swE));sNtA(sanO(s.ntA));sLocks(sanO(s.locks));}sL(true);});},[]);
+  useEffect(function(){sLoad().then(function(s){if(s){var u=sanU(s.users);if(u&&u.length)sU(u);sGS(sanS(s.gS));sInc(sanA(s.inc));if(s.dR)sDR(sanO(s.dR));sOvA(sanOv(sanO(s.ovA)));sAsA(sanO(s.asA));sExA(sanO(s.exA));sSWE(sanO(s.swE));sNtA(sanO(s.ntA));sLocks(sanO(s.locks));}sL(true);});},[]);
   var first=useRef(true);useEffect(function(){if(first.current){first.current=false;return;}sSv(false);},[users,gS,inc,dR,ovA,asA,exA,swE,ntA,locks]);
   var doSave=useCallback(function(){sSave({users:users,gS:gS,inc:inc,dR:dR,ovA:ovA,asA:asA,exA:exA,swE:swE,ntA:ntA,locks:locks}).then(function(){sSv(true);});},[users,gS,inc,dR,ovA,asA,exA,swE,ntA,locks]);
 
   var fileRef=useRef(null);
   var doExpJ=useCallback(function(){var data={users:users,gS:gS,inc:inc,dR:dR,ovA:ovA,asA:asA,exA:exA,swE:swE,ntA:ntA,locks:locks,_v:"v12"};var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download="CML_backup_"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(a);a.click();document.body.removeChild(a);},[users,gS,inc,dR,ovA,asA,exA,swE,ntA,locks]);
-  var doImpJ=function(e){var file=e.target.files&&e.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(ev){try{var d=JSON.parse(ev.target.result);var u=sanU(d.users);if(u&&u.length)sU(u);sGS(sanS(d.gS));sInc(sanA(d.inc));if(d.dR)sDR(sanO(d.dR));sOvA(sanO(d.ovA));sAsA(sanO(d.asA));sExA(sanO(d.exA));sSWE(sanO(d.swE||{}));sNtA(sanO(d.ntA));sLocks(sanO(d.locks||{}));sSv(false);sM({title:"OK",msg:"Importato. Clicca Salva.",onOk:function(){sM(null);}});}catch(err){sM({title:"Errore",msg:String(err),onOk:function(){sM(null);}});}};reader.readAsText(file);e.target.value="";};
+  var doImpJ=function(e){var file=e.target.files&&e.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(ev){try{var d=JSON.parse(ev.target.result);var u=sanU(d.users);if(u&&u.length)sU(u);sGS(sanS(d.gS));sInc(sanA(d.inc));if(d.dR)sDR(sanO(d.dR));sOvA(sanOv(sanO(d.ovA)));sAsA(sanO(d.asA));sExA(sanO(d.exA));sSWE(sanO(d.swE||{}));sNtA(sanO(d.ntA));sLocks(sanO(d.locks||{}));sSv(false);sM({title:"OK",msg:"Importato. Clicca Salva.",onOk:function(){sM(null);}});}catch(err){sM({title:"Errore",msg:String(err),onOk:function(){sM(null);}});}};reader.readAsText(file);e.target.value="";};
 
   var mk=yr+"-"+mo;var dOv=ovA[mk]||{};var asg=asA[mk]||{};var exc=exA[mk]||{};var swExc=swE[mk]||{};var mNt=ntA[mk]||"";var mLk=locks[mk]||{};var nd=nD(yr,mo);
   var sn=useMemo(function(){return sN(users);},[users]);
@@ -424,6 +439,41 @@ function VMese(p){
   var swapCell=function(dk2,code,idx,uid){modDay(function(o){if(!o[dk2])o[dk2]={};var a=o[dk2][code]||[];a[idx]=uid;o[dk2][code]=a;return o;});sEdit(null);};
   var rmCell=function(dk2,code,idx){modDay(function(o){if(!o[dk2])o[dk2]={};var a=o[dk2][code]||[];a.splice(idx,1);o[dk2][code]=a;return o;});sEdit(null);};
   var addCell=function(dk2,code,uid){modDay(function(o){if(!o[dk2])o[dk2]={};var a=o[dk2][code]||[];a.push(uid);o[dk2][code]=a;return o;});sEdit(null);};
+
+  // VDOM pair operations (always 2 at a time)
+  var addPairVD=function(dk2,nameA,nameB){
+    var uA=users.find(function(x){return x.name===nameA;});
+    var uB=users.find(function(x){return x.name===nameB;});
+    if(!uA||!uB)return;
+    modDay(function(o){if(!o[dk2])o[dk2]={};var a=o[dk2].VDOM||[];a.push(uA.id);a.push(uB.id);o[dk2].VDOM=a;return o;});
+    sEdit(null);
+  };
+  var replacePairVD=function(dk2,pairIdx,nameA,nameB){
+    var uA=users.find(function(x){return x.name===nameA;});
+    var uB=users.find(function(x){return x.name===nameB;});
+    if(!uA||!uB)return;
+    modDay(function(o){if(!o[dk2])o[dk2]={};var a=(o[dk2].VDOM||[]).slice();a.splice(pairIdx*2,2,uA.id,uB.id);o[dk2].VDOM=a;return o;});
+    sEdit(null);
+  };
+  var rmPairVD=function(dk2,pairIdx){
+    modDay(function(o){if(!o[dk2])o[dk2]={};var a=(o[dk2].VDOM||[]).slice();a.splice(pairIdx*2,2);o[dk2].VDOM=a;return o;});
+    sEdit(null);
+  };
+  // Get VDOM pairs not already used on this day
+  var avPairsVD=function(dk2,excludeIdx){
+    var cur=(asg[dk2]&&asg[dk2].VDOM)||[];
+    var presentIds=new Set();
+    cur.forEach(function(uid,i){
+      var skipPair=(excludeIdx!==undefined&&Math.floor(i/2)===excludeIdx);
+      if(uid&&!skipPair)presentIds.add(uid);
+    });
+    return VDOM_PAIRS.filter(function(pair){
+      var uA=users.find(function(x){return x.name===pair[0];});
+      var uB=users.find(function(x){return x.name===pair[1];});
+      if(!uA||!uB)return false;
+      return !presentIds.has(uA.id)&&!presentIds.has(uB.id);
+    });
+  };
 
   // Available: exclude unavail + already assigned that day
   var gAv=function(dk2,code,exIdx){
@@ -647,6 +697,18 @@ function VMese(p){
                   var isStr=u&&u.ct==="STR";
                   var isVdomCell=a.code==="VDOM";
                   var isEd=edit&&edit.dk===k&&edit.code===a.code&&edit.idx===idx;
+                  if(isEd&&isVdomCell){
+                    // VDOM: show pair-replacement dropdown
+                    var pairIdx=Math.floor(idx/2);
+                    var avP=avPairsVD(k,pairIdx);
+                    return(<select key={idx} autoFocus value="" style={Object.assign({},cs.inp,{fontSize:9,padding:"1px",width:"100%"})}
+                      onChange={function(e){var v=e.target.value;if(!v)return;if(v==="_rm")rmPairVD(k,pairIdx);else{var p=v.split("|");replacePairVD(k,pairIdx,p[0],p[1]);}}}
+                      onBlur={function(){setTimeout(function(){sEdit(null);},150);}}>
+                      <option value="">Sostituisci coppia...</option>
+                      <option value="_rm" style={{color:"red"}}>{"\u2715"} Rimuovi coppia</option>
+                      {avP.map(function(pp,i){return(<option key={i} value={pp[0]+"|"+pp[1]}>{pp[0]} + {pp[1]}</option>);})}
+                    </select>);
+                  }
                   if(isEd&&!isVdomCell){
                     var av=gAv(k,a.code,idx);
                     return(<select key={idx} autoFocus value={uid||""} style={Object.assign({},cs.inp,{fontSize:9,padding:"1px",width:"100%"})}
@@ -661,8 +723,8 @@ function VMese(p){
                     onDragStart={function(e){onDS(e,k,a.code,idx,uid);}}
                     onDragOver={onDO}
                     onDrop={function(e){onDrop(e,k,a.code,idx);}}
-                    onClick={isVdomCell?undefined:function(){sEdit({dk:k,code:a.code,idx:idx});}}
-                    title={isVdomCell?"Coppia VDOM \u2014 trascina per spostare la coppia intera":undefined}
+                    onClick={function(){sEdit({dk:k,code:a.code,idx:idx});}}
+                    title={isVdomCell?"Coppia VDOM \u2014 click per sostituire/rimuovere, drag per spostare":undefined}
                     style={{color:c?c.tx:"#334155",lineHeight:1.25,cursor:"grab",
                       fontWeight:isStr?700:400,
                       textTransform:isStr?"uppercase":"none",
@@ -694,11 +756,20 @@ function VMese(p){
                   uids.forEach(function(uid,idx){cc.push(renderName(uid,idx));});
                 }
 
-                // Add + lock buttons (+ hidden for VDOM: pairs are auto-managed)
+                // Add + lock buttons (+ for VDOM shows pair selector)
                 var isAddE=edit&&edit.dk===k&&edit.code===a.code&&edit.idx===-1;
-                if(isAddE&&a.code!=="VDOM"){var av3=gAv(k,a.code,undefined);cc.push(<select key="add" autoFocus value="" style={Object.assign({},cs.inp,{fontSize:9,padding:"1px",width:"100%"})} onChange={function(e){if(e.target.value)addCell(k,a.code,e.target.value);}} onBlur={function(){setTimeout(function(){sEdit(null);},150);}}><option value="">Aggiungi...</option>{av3.map(function(u2){return(<option key={u2.id} value={u2.id}>{sn[u2.id]}</option>);})}</select>);}
+                if(isAddE&&a.code==="VDOM"){
+                  var avP2=avPairsVD(k,undefined);
+                  cc.push(<select key="addv" autoFocus value="" style={Object.assign({},cs.inp,{fontSize:9,padding:"1px",width:"100%"})}
+                    onChange={function(e){var v=e.target.value;if(!v)return;var p=v.split("|");addPairVD(k,p[0],p[1]);}}
+                    onBlur={function(){setTimeout(function(){sEdit(null);},150);}}>
+                    <option value="">Aggiungi coppia...</option>
+                    {avP2.map(function(pp,i){return(<option key={i} value={pp[0]+"|"+pp[1]}>{pp[0]} + {pp[1]}</option>);})}
+                  </select>);
+                }
+                else if(isAddE&&a.code!=="VDOM"){var av3=gAv(k,a.code,undefined);cc.push(<select key="add" autoFocus value="" style={Object.assign({},cs.inp,{fontSize:9,padding:"1px",width:"100%"})} onChange={function(e){if(e.target.value)addCell(k,a.code,e.target.value);}} onBlur={function(){setTimeout(function(){sEdit(null);},150);}}><option value="">Aggiungi...</option>{av3.map(function(u2){return(<option key={u2.id} value={u2.id}>{sn[u2.id]}</option>);})}</select>);}
                 else{cc.push(<div key="btns" className="no-print" style={{display:"flex",justifyContent:"center",gap:4,marginTop:1}}>
-                  {a.code!=="VDOM"&&<button onClick={function(){sEdit({dk:k,code:a.code,idx:-1});}} style={{background:"none",border:"none",color:"#94a3b8",cursor:"pointer",fontSize:10,padding:0}}>+</button>}
+                  <button onClick={function(){sEdit({dk:k,code:a.code,idx:-1});}} style={{background:"none",border:"none",color:"#94a3b8",cursor:"pointer",fontSize:10,padding:0}}>+</button>
                   <button onClick={function(){togLock(k,a.code);}} style={{background:"none",border:"none",color:isLocked?"#dc2626":"#cbd5e1",cursor:"pointer",fontSize:9,padding:0}}>{isLocked?"\uD83D\uDD12":"\uD83D\uDD13"}</button>
                 </div>);}
 
@@ -719,7 +790,7 @@ function VSlot(p){
   var gS=p.gS,sGS=p.sGS,yr=p.yr,mo=p.mo,nd=p.nd,dOv=p.dOv,sDO=p.sDO;
   var wd=useMemo(function(){var r=[];for(var i=1;i<=nd;i++){if(!isOff(yr,mo,i))r.push(i);}return r;},[yr,mo,nd]);
   var chg=function(code,val){var n=parseInt(val,10);if(isNaN(n)||n<0)return;sGS(function(prev){var o=Object.assign({},prev);o[code]=n;return o;});};
-  var togD=function(d,code){var k=dk(yr,mo,d);sDO(function(prev){var c=Object.assign({},prev);c[k]=Object.assign({},c[k]||{});var cur=c[k][code]||{enabled:true};c[k][code]=Object.assign({},cur,{enabled:!cur.enabled});return c;});};
+  var togD=function(d,code){var k=dk(yr,mo,d);sDO(function(prev){var c=Object.assign({},prev);c[k]=Object.assign({},c[k]||{});var ov=c[k][code];var defOn=(code!=="NICMIN"&&code!=="CIECHI");var curOn=ov?(ov.enabled!==false):defOn;var newOn=!curOn;var newOv=Object.assign({},ov||{},{enabled:newOn});if(newOn&&newOv.slots===0)delete newOv.slots;c[k][code]=newOv;return c;});};
   var setDS=function(d,code,val){var n=parseInt(val,10);var k=dk(yr,mo,d);sDO(function(prev){var c=Object.assign({},prev);c[k]=Object.assign({},c[k]||{});var cur=c[k][code]||{enabled:true};c[k][code]=Object.assign({},cur,{slots:isNaN(n)?undefined:n});return c;});};
   var QK=["CIECHI","NICSP","NICMIN"];
   return(<div>
