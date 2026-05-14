@@ -45,7 +45,7 @@ var DU=[
 ["Liuzzo Ludovico",true,"STR",true,false,[1,2,3,4,5],4,false],
 ["Lo Pumo Roberta",true,"STR",false,false,[1,2,3,4,5],null,false],
 ["Martines Annamaria",true,"ACN",false,false,[1,2,3],null,false],
-["Marzullo Isabella",false,"STR",false,false,[1,2,3,4,5],3,false],
+["Marzullo Isabella",true,"STR",false,false,[1,2,3,4,5],3,false],
 ["Milana Maria Chiara",false,"STR",false,false,[1,2,3,4,5],null,false],
 ["Ministeri Federica",true,"STR",false,false,[1,2,3,4,5],null,false],
 ["Monaco Lucia",true,"ACN",false,false,[3,4,5],null,false],
@@ -96,14 +96,20 @@ function mDU(){
 function mDS(){var s={};ACT.forEach(function(a){s[a.code]=a.def;});return s;}
 
 /* ═══════════ INDISPO ═══════════ */
-function bInd(yr,mo,users,exc,swExc){
+function bInd(yr,mo,users,exc,swExc,wdExc){
   var nd=nD(yr,mo),r={};
   for(var d=1;d<=nd;d++){
     if(isOff(yr,mo,d))continue;
     var k=dk(yr,mo,d),dow=jd(yr,mo,d);r[k]={};
     users.forEach(function(u){
       if(u.vo)return;
-      if(!u.wd.includes(dow)){r[k][u.id]=["N/D"];return;}
+      // Work-day exception: ON forces available, OFF forces unavailable
+      var wdOv=wdExc&&wdExc[k]&&wdExc[k][u.id];
+      var worksToday;
+      if(wdOv==="ON")worksToday=true;
+      else if(wdOv==="OFF")worksToday=false;
+      else worksToday=u.wd.includes(dow);
+      if(!worksToday){r[k][u.id]=["N/D"];return;}
       // SW: check month-level SW override first, then fixed swDay
       var swE=swExc[k]&&swExc[k][u.id];
       if(swE==="SW"){r[k][u.id]=["SW"];return;}
@@ -210,12 +216,17 @@ function gen(year,month,users,gS,dayOv,eInd,inc,dRestr,locks,currentAsg){
     function aF(uid,ac){dU.add(uid);dA.add(uid);tL[uid]=(tL[uid]||0)+1;aC[uid][ac]=(aC[uid][ac]||0)+1;}
 
     function sPairs(ac,n){
+      // Strict ML + non-ML pairing. ML are NEVER paired with other ML.
+      // If non-ML run out, remaining slots stay empty (alert system flags it).
       var res=[];
       for(var i=0;i<n;i++){
-        var mlP=gP(ac,function(u){return u.ml;});var nonP=gP(ac,function(u){return !u.ml;});
-        if(mlP.length&&nonP.length){var m=pk(mlP,ac,true);if(!m)break;aF(m.id,ac);var nm=pk(gP(ac,function(u){return !u.ml;}),ac,false);if(!nm)break;aF(nm.id,ac);res.push(m.id,nm.id);}
-        else if(mlP.length>=2){var m1=pk(mlP,ac,true);if(!m1)break;aF(m1.id,ac);var m2=pk(gP(ac,function(u){return u.ml;}),ac,false);if(!m2)break;aF(m2.id,ac);res.push(m1.id,m2.id);}
-        else break;
+        var mlP=gP(ac,function(u){return u.ml;});
+        var nonP=gP(ac,function(u){return !u.ml;});
+        if(mlP.length&&nonP.length){
+          var m=pk(mlP,ac,true);if(!m)break;aF(m.id,ac);
+          var nm=pk(gP(ac,function(u){return !u.ml;}),ac,false);if(!nm)break;aF(nm.id,ac);
+          res.push(m.id,nm.id);
+        } else break;
       }
       return res;
     }
@@ -303,38 +314,6 @@ function gen(year,month,users,gS,dayOv,eInd,inc,dRestr,locks,currentAsg){
       }
     });
 
-    // TRIO PASS: promote VALID/ASP residuals into CIC (priority) then NIC
-    // Max 1 extra per coppia (trio, mai quartetto). CIC first, NIC after.
-    // Prefer non-ML first (rarely lead commissions)
-    var residPool=out[k].VALID.concat(out[k].ASP).slice();
-    residPool.sort(function(a2,b2){
-      var ua=norm.find(function(x){return x.id===a2;});
-      var ub=norm.find(function(x){return x.id===b2;});
-      if(!ua||!ub)return 0;
-      if(!ua.ml&&ub.ml)return -1;if(ua.ml&&!ub.ml)return 1;
-      return (tL[a2]||0)-(tL[b2]||0);
-    });
-    function rmResid(uid){
-      var vi=out[k].VALID.indexOf(uid);if(vi>=0)out[k].VALID.splice(vi,1);
-      var ai=out[k].ASP.indexOf(uid);if(ai>=0)out[k].ASP.splice(ai,1);
-    }
-    if(!out[k]._trios)out[k]._trios={};
-    function makeTrios(ac){
-      var arr=out[k][ac];if(!arr||arr.length<2)return;
-      var nPairs3=Math.floor(arr.length/2);
-      var newA=[];var trioCount=0;
-      for(var tp2=0;tp2<nPairs3;tp2++){
-        newA.push(arr[tp2*2]);
-        newA.push(arr[tp2*2+1]);
-        if(residPool.length>0){
-          var ex=residPool.shift();newA.push(ex);rmResid(ex);trioCount++;
-        }
-      }
-      out[k][ac]=newA;
-      out[k]._trios[ac]=trioCount;
-    }
-    makeTrios("CIC");
-    if(residPool.length>0)makeTrios("NIC");
   }
   return {asg:out,alerts:alerts};
 }
@@ -347,7 +326,7 @@ function expHTML(yr,mo,nd,sn,asg,eInd,dOv,gS){
   for(var d=1;d<=nd;d++){var k=dk(yr,mo,d),we=isWE(yr,mo,d),hol=isH(yr,mo,d),off=we||!!hol;var da=asg[k]||{},di=eInd[k]||{};var bg=hol?"#fee2e2":we?"#f1f5f9":(d%2===0?"#fafafc":"#fff");var dc=hol?"#dc2626":we?"#94a3b8":"#334155";var lbl=dn(yr,mo,d)+" "+d+(hol?" "+hol:"");
     var cells=OPD.map(function(a){if(off)return'<td style="border:1px solid #bbb;background:'+bg+'"></td>';var ov=dOv[k]&&dOv[k][a.code];var en=ov?(ov.enabled!==false):true;if((a.code==="NICMIN"||a.code==="CIECHI")&&!ov)en=false;if(!en)return'<td style="border:1px solid #bbb;background:#fafafa;color:#ccc;text-align:center">\u2014</td>';
       var uids=da[a.code]||[];var names=uids.map(function(uid){return sn[uid]||"?";});var c=COL[a.code];var inner="";
-      if(a.pair&&names.length>=2){var canT2=(a.code==="CIC"||a.code==="NIC");var nT2=0;if(canT2){var ad2=ACT.find(function(x){return x.code===a.code;});var bp2=(ov&&typeof ov.slots==="number")?ov.slots:(gS[a.code]!==undefined?gS[a.code]:(ad2?ad2.def:0));nT2=Math.max(0,names.length-bp2*2);}var gi2=0;var gn=0;while(gi2<names.length){var gs=(canT2&&gn<nT2)?3:2;if(gi2+gs>names.length)gs=names.length-gi2;inner+='<div style="border:1px solid '+(c?c.bd:"#ddd")+';border-radius:3px;padding:1px 3px;margin-bottom:1px;background:'+(c?c.bg:"#fff")+(gs>2?';border-left:3px solid '+(c?c.bd:"#6366f1"):'')+'">';for(var gj=0;gj<gs;gj++){inner+='<div style="font-weight:'+(gj===0?'700':'400')+';font-size:7pt;color:'+(c?c.tx:"#333")+'">'+names[gi2+gj]+'</div>';}inner+='</div>';gi2+=gs;gn++;}}
+      if(a.pair&&names.length>=2){var gi2=0;while(gi2<names.length){var gs=gi2+1<names.length?2:1;inner+='<div style="border:1px solid '+(c?c.bd:"#ddd")+';border-radius:3px;padding:1px 3px;margin-bottom:1px;background:'+(c?c.bg:"#fff")+'">';for(var gj=0;gj<gs;gj++){inner+='<div style="font-weight:'+(gj===0?'700':'400')+';font-size:7pt;color:'+(c?c.tx:"#333")+'">'+names[gi2+gj]+'</div>';}inner+='</div>';gi2+=gs;}}
       else{names.forEach(function(n){inner+='<div style="font-size:7pt;color:'+(c?c.tx:"#333")+'">'+n+'</div>';});}
       return'<td style="border:1px solid #bbb;padding:2px;background:'+(c?c.bg+"90":"#fff")+';text-align:center;vertical-align:top">'+inner+'</td>';}).join("");
     var indT=off?"":Object.entries(di).filter(function(e){return e[1]&&e[1].length;}).map(function(e){return'<b>'+(sn[e[0]]||"?")+'</b> '+e[1].join(",");}).join("<br/>");
@@ -367,24 +346,25 @@ var TABS=["Mese","Slot","Indispo","Utenti","Regole","Vincoli","Riepilogo"];
 export default function App(){
   var now=new Date();var[yr,sYr]=useState(now.getFullYear());var[mo,sMo]=useState(now.getMonth());var[tab,sTab]=useState("Mese");var[loaded,sL]=useState(false);var[saved,sSv]=useState(true);
   var[users,sU]=useState(mDU);var[gS,sGS]=useState(mDS);var[inc,sInc]=useState(function(){var u=mDU();var n=u.find(function(x){return x.name==="Nannola Chiara";});var l=u.find(function(x){return x.name==="Licciardello Gabriele";});return (n&&l)?[[n.id,l.id]]:[];});var[dR,sDR]=useState(function(){var u=mDU();var c=u.find(function(x){return x.name==="Costa Manuela";});var o={};if(c)o[c.id]={"2":["CIC","NIC","VD"]};return o;});
-  var[ovA,sOvA]=useState({});var[asA,sAsA]=useState({});var[genAlerts,sGenAlerts]=useState({});var[exA,sExA]=useState({});var[swE,sSWE]=useState({});var[ntA,sNtA]=useState({});var[locks,sLocks]=useState({});var[modal,sM]=useState(null);
+  var[ovA,sOvA]=useState({});var[asA,sAsA]=useState({});var[genAlerts,sGenAlerts]=useState({});var[exA,sExA]=useState({});var[swE,sSWE]=useState({});var[wdE,sWDE]=useState({});var[ntA,sNtA]=useState({});var[locks,sLocks]=useState({});var[modal,sM]=useState(null);
 
-  useEffect(function(){sLoad().then(function(s){if(s){var u=sanU(s.users);if(u&&u.length)sU(u);sGS(sanS(s.gS));sInc(sanA(s.inc));if(s.dR)sDR(sanO(s.dR));sOvA(sanOv(sanO(s.ovA)));sAsA(sanO(s.asA));sExA(sanO(s.exA));sSWE(sanO(s.swE));sNtA(sanO(s.ntA));sLocks(sanO(s.locks));}sL(true);});},[]);
-  var first=useRef(true);useEffect(function(){if(first.current){first.current=false;return;}sSv(false);},[users,gS,inc,dR,ovA,asA,exA,swE,ntA,locks]);
-  var doSave=useCallback(function(){sSave({users:users,gS:gS,inc:inc,dR:dR,ovA:ovA,asA:asA,exA:exA,swE:swE,ntA:ntA,locks:locks}).then(function(){sSv(true);});},[users,gS,inc,dR,ovA,asA,exA,swE,ntA,locks]);
+  useEffect(function(){sLoad().then(function(s){if(s){var u=sanU(s.users);if(u&&u.length)sU(u);sGS(sanS(s.gS));sInc(sanA(s.inc));if(s.dR)sDR(sanO(s.dR));sOvA(sanOv(sanO(s.ovA)));sAsA(sanO(s.asA));sExA(sanO(s.exA));sSWE(sanO(s.swE));sWDE(sanO(s.wdE||{}));sNtA(sanO(s.ntA));sLocks(sanO(s.locks));}sL(true);});},[]);
+  var first=useRef(true);useEffect(function(){if(first.current){first.current=false;return;}sSv(false);},[users,gS,inc,dR,ovA,asA,exA,swE,wdE,ntA,locks]);
+  var doSave=useCallback(function(){sSave({users:users,gS:gS,inc:inc,dR:dR,ovA:ovA,asA:asA,exA:exA,swE:swE,wdE:wdE,ntA:ntA,locks:locks}).then(function(){sSv(true);});},[users,gS,inc,dR,ovA,asA,exA,swE,wdE,ntA,locks]);
 
   var fileRef=useRef(null);
-  var doExpJ=useCallback(function(){var data={users:users,gS:gS,inc:inc,dR:dR,ovA:ovA,asA:asA,exA:exA,swE:swE,ntA:ntA,locks:locks,_v:"v12"};var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download="CML_backup_"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(a);a.click();document.body.removeChild(a);},[users,gS,inc,dR,ovA,asA,exA,swE,ntA,locks]);
-  var doImpJ=function(e){var file=e.target.files&&e.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(ev){try{var d=JSON.parse(ev.target.result);var u=sanU(d.users);if(u&&u.length)sU(u);sGS(sanS(d.gS));sInc(sanA(d.inc));if(d.dR)sDR(sanO(d.dR));sOvA(sanOv(sanO(d.ovA)));sAsA(sanO(d.asA));sExA(sanO(d.exA));sSWE(sanO(d.swE||{}));sNtA(sanO(d.ntA));sLocks(sanO(d.locks||{}));sSv(false);sM({title:"OK",msg:"Importato. Clicca Salva.",onOk:function(){sM(null);}});}catch(err){sM({title:"Errore",msg:String(err),onOk:function(){sM(null);}});}};reader.readAsText(file);e.target.value="";};
+  var doExpJ=useCallback(function(){var data={users:users,gS:gS,inc:inc,dR:dR,ovA:ovA,asA:asA,exA:exA,swE:swE,wdE:wdE,ntA:ntA,locks:locks,_v:"v12"};var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download="CML_backup_"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(a);a.click();document.body.removeChild(a);},[users,gS,inc,dR,ovA,asA,exA,swE,wdE,ntA,locks]);
+  var doImpJ=function(e){var file=e.target.files&&e.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(ev){try{var d=JSON.parse(ev.target.result);var u=sanU(d.users);if(u&&u.length)sU(u);sGS(sanS(d.gS));sInc(sanA(d.inc));if(d.dR)sDR(sanO(d.dR));sOvA(sanOv(sanO(d.ovA)));sAsA(sanO(d.asA));sExA(sanO(d.exA));sSWE(sanO(d.swE||{}));sWDE(sanO(d.wdE||{}));sNtA(sanO(d.ntA));sLocks(sanO(d.locks||{}));sSv(false);sM({title:"OK",msg:"Importato. Clicca Salva.",onOk:function(){sM(null);}});}catch(err){sM({title:"Errore",msg:String(err),onOk:function(){sM(null);}});}};reader.readAsText(file);e.target.value="";};
 
-  var mk=yr+"-"+mo;var dOv=ovA[mk]||{};var asg=asA[mk]||{};var exc=exA[mk]||{};var swExc=swE[mk]||{};var mNt=ntA[mk]||"";var mLk=locks[mk]||{};var nd=nD(yr,mo);
+  var mk=yr+"-"+mo;var dOv=ovA[mk]||{};var asg=asA[mk]||{};var exc=exA[mk]||{};var swExc=swE[mk]||{};var wdExc=wdE[mk]||{};var mNt=ntA[mk]||"";var mLk=locks[mk]||{};var nd=nD(yr,mo);
   var sn=useMemo(function(){return sN(users);},[users]);
-  var eInd=useMemo(function(){return bInd(yr,mo,users,exc,swExc);},[yr,mo,users,exc,swExc]);
+  var eInd=useMemo(function(){return bInd(yr,mo,users,exc,swExc,wdExc);},[yr,mo,users,exc,swExc,wdExc]);
 
   var sDO=useCallback(function(fn){sOvA(function(p){var o=Object.assign({},p);o[mk]=typeof fn==="function"?fn(p[mk]||{}):fn;return o;});},[mk]);
   var sAS=useCallback(function(v){sAsA(function(p){var o=Object.assign({},p);o[mk]=typeof v==="function"?v(p[mk]||{}):v;return o;});},[mk]);
   var sEx=useCallback(function(fn){sExA(function(p){var o=Object.assign({},p);o[mk]=typeof fn==="function"?fn(p[mk]||{}):fn;return o;});},[mk]);
   var sSW=useCallback(function(fn){sSWE(function(p){var o=Object.assign({},p);o[mk]=typeof fn==="function"?fn(p[mk]||{}):fn;return o;});},[mk]);
+  var sWD=useCallback(function(fn){sWDE(function(p){var o=Object.assign({},p);o[mk]=typeof fn==="function"?fn(p[mk]||{}):fn;return o;});},[mk]);
   var sNt=useCallback(function(v){sNtA(function(p){var o=Object.assign({},p);o[mk]=v;return o;});},[mk]);
   var sLk=useCallback(function(fn){sLocks(function(p){var o=Object.assign({},p);o[mk]=typeof fn==="function"?fn(p[mk]||{}):fn;return o;});},[mk]);
 
@@ -419,7 +399,7 @@ export default function App(){
 
     {tab==="Mese"&&<VMese yr={yr} mo={mo} nd={nd} users={users} sn={sn} gS={gS} dOv={dOv} asg={asg} sAS={sAS} eInd={eInd} doGen={doGen} doExpH={doExpH} doPrint={doPrint} mLk={mLk} sLk={sLk} alerts={genAlerts}/>}
     {tab==="Slot"&&<VSlot gS={gS} sGS={sGS} yr={yr} mo={mo} nd={nd} dOv={dOv} sDO={sDO}/>}
-    {tab==="Indispo"&&<VInd yr={yr} mo={mo} nd={nd} users={users} sn={sn} exc={exc} sEx={sEx} swExc={swExc} sSW={sSW} eInd={eInd}/>}
+    {tab==="Indispo"&&<VInd yr={yr} mo={mo} nd={nd} users={users} sn={sn} exc={exc} sEx={sEx} swExc={swExc} sSW={sSW} wdExc={wdExc} sWD={sWD} eInd={eInd}/>}
     {tab==="Utenti"&&<VUt users={users} sU={sU} sn={sn} sM={sM}/>}
     {tab==="Regole"&&<VReg users={users} sU={sU}/>}
     {tab==="Vincoli"&&<VVinc users={users} sn={sn} inc={inc} sInc={sInc} dR={dR} sDR={sDR} sM={sM}/>}
@@ -732,23 +712,14 @@ function VMese(p){
                 };
 
                 if(isP&&uids.length>=2){
-                  // Auto-detect trios: extras beyond configured pair slots
-                  var canTrio=(a.code==="CIC"||a.code==="NIC");
-                  var nTrios=0;
-                  if(canTrio){
-                    var actDef=ACT.find(function(x){return x.code===a.code;});
-                    var basePairs=(ov&&typeof ov.slots==="number")?ov.slots:(gS[a.code]!==undefined?gS[a.code]:(actDef?actDef.def:0));
-                    nTrios=Math.max(0,uids.length-basePairs*2);
-                  }
-                  var groups=[];var gi=0;var grpNum=0;
+                  // Pure pairs only — no trios
+                  var groups=[];var gi=0;
                   while(gi<uids.length){
-                    var sz=(canTrio&&grpNum<nTrios)?3:2;
-                    var grpIdx=[];for(var gg=0;gg<sz&&gi+gg<uids.length;gg++)grpIdx.push(gi+gg);
-                    groups.push(grpIdx);gi+=grpIdx.length;grpNum++;
+                    var grpIdx=gi+1<uids.length?[gi,gi+1]:[gi];
+                    groups.push(grpIdx);gi+=grpIdx.length;
                   }
                   groups.forEach(function(grp,gIdx){
-                    var isExtra=grp.length>2;
-                    cc.push(<div key={gIdx+"g"} style={{border:"1px solid "+(c?c.bd:"#e2e8f0"),borderRadius:isExtra?5:3,padding:"1px 3px",marginBottom:1,background:c?c.bg:"#fff",borderLeft:isExtra?"3px solid "+(c?c.bd:"#6366f1"):"1px solid "+(c?c.bd:"#e2e8f0")}}>
+                    cc.push(<div key={gIdx+"g"} style={{border:"1px solid "+(c?c.bd:"#e2e8f0"),borderRadius:3,padding:"1px 3px",marginBottom:1,background:c?c.bg:"#fff"}}>
                       {grp.map(function(idx){return renderName(uids[idx],idx);})}
                     </div>);
                   });
@@ -819,7 +790,7 @@ function VSlot(p){
 
 /* ═══════════ INDISPO — with flexible SW ═══════════ */
 function VInd(p){
-  var yr=p.yr,mo=p.mo,nd=p.nd,users=p.users,sn=p.sn,exc=p.exc,sEx=p.sEx,swExc=p.swExc,sSW=p.sSW,eInd=p.eInd;
+  var yr=p.yr,mo=p.mo,nd=p.nd,users=p.users,sn=p.sn,exc=p.exc,sEx=p.sEx,swExc=p.swExc,sSW=p.sSW,wdExc=p.wdExc,sWD=p.sWD,eInd=p.eInd;
   var sorted=useMemo(function(){return users.filter(function(u){return !u.vo;}).sort(function(a,b){return a.name.localeCompare(b.name);});},[users]);
   var wd=useMemo(function(){var r=[];for(var i=1;i<=nd;i++){if(!isOff(yr,mo,i))r.push(i);}return r;},[yr,mo,nd]);
   var[sel,sSel]=useState("");useEffect(function(){if(!sel&&sorted.length)sSel(sorted[0].id);},[sorted,sel]);
@@ -830,25 +801,47 @@ function VInd(p){
     else if(cur==="NO")delete c[k][uid]; // back to default
     else c[k][uid]="SW"; // force SW
     return c;});};
+  // Work-day toggle: 3 states — default / ON (force work) / OFF (force off)
+  var togWD=function(uid,d){var k=dk(yr,mo,d);sWD(function(prev){var c=Object.assign({},prev);c[k]=Object.assign({},c[k]||{});var cur=c[k][uid];
+    if(cur==="ON")c[k][uid]="OFF";
+    else if(cur==="OFF")delete c[k][uid];
+    else c[k][uid]="ON";
+    if(!c[k][uid])delete c[k][uid];
+    return c;});};
 
   var u=users.find(function(x){return x.id===sel;});
   return(<div>
     <h3 style={{fontSize:14,fontWeight:700,marginBottom:4}}>Indisponibilit{"\u00E0"} {"\u2014"} {MN[mo]} {yr}</h3>
-    <p style={{fontSize:11,color:"#64748b",marginBottom:8}}>SW: clicca per forzare/rimuovere. <span style={{color:"#2563eb"}}>{"\u25A0"}</span>=SW fisso <span style={{color:"#f59e0b"}}>{"\u25A0"}</span>=SW forzato <span style={{color:"#d1d5db"}}>{"\u25A0"}</span>=SW rimosso</p>
+    <p style={{fontSize:11,color:"#64748b",marginBottom:4}}>SW: clicca per forzare/rimuovere. <span style={{color:"#2563eb"}}>{"\u25A0"}</span>=SW fisso <span style={{color:"#f59e0b"}}>{"\u25A0"}</span>=SW forzato <span style={{color:"#d1d5db"}}>{"\u25A0"}</span>=SW rimosso</p>
+    <p style={{fontSize:11,color:"#64748b",marginBottom:8}}>Lav.: clicca per spostare un giorno di lavoro. <span style={{color:"#16a34a"}}>{"\u25A0"}</span>=lavoro forzato (giorno extra) <span style={{color:"#dc2626"}}>{"\u25A0"}</span>=non lavora forzato</p>
     <select value={sel} onChange={function(e){sSel(e.target.value);}} style={Object.assign({},cs.inp,{minWidth:220,marginBottom:10})}>
       {sorted.map(function(u2){return(<option key={u2.id} value={u2.id}>{u2.name}{u2.swDay?" (SW fisso: "+WDS.find(function(w){return w.n===u2.swDay;}).l+")":""}</option>);})}</select>
     {sel&&u&&<div style={{overflowX:"auto",marginBottom:16}}>
-      <table style={{borderCollapse:"collapse"}}><thead><tr><th style={cs.h}>Giorno</th><th style={Object.assign({},cs.h,{width:55})}>SW</th>{["FER","EST"].map(function(c){return(<th key={c} style={Object.assign({},cs.h,{width:55})}>{c}</th>);})}</tr></thead>
+      <table style={{borderCollapse:"collapse"}}><thead><tr><th style={cs.h}>Giorno</th><th style={Object.assign({},cs.h,{width:55})}>Lav.</th><th style={Object.assign({},cs.h,{width:55})}>SW</th>{["FER","EST"].map(function(c){return(<th key={c} style={Object.assign({},cs.h,{width:55})}>{c}</th>);})}</tr></thead>
         <tbody>{wd.map(function(d){var k=dk(yr,mo,d);var dow=jd(yr,mo,d);
-          if(!u.wd.includes(dow))return(<tr key={d} style={{background:"#f8f8f8"}}><td style={Object.assign({},cs.c,{color:"#bbb"})}>{dn(yr,mo,d)} {d}</td><td colSpan={3} style={Object.assign({},cs.c,{color:"#bbb",textAlign:"center"})}>non lavora</td></tr>);
+          var wdOv=wdExc[k]&&wdExc[k][sel];
+          var normalWork=u.wd.includes(dow);
+          var worksToday=wdOv==="ON"?true:wdOv==="OFF"?false:normalWork;
+          // Work-day cell — always clickable
+          var wdColor=wdOv==="ON"?"#16a34a":wdOv==="OFF"?"#dc2626":"transparent";
+          var wdLabel=wdOv==="ON"?"+ lav":wdOv==="OFF"?"no":(normalWork?"\u2713":"\u2014");
+          var wdCell=(<td style={Object.assign({},cs.c,{textAlign:"center",cursor:"pointer",background:wdColor!=="transparent"?wdColor+"30":"transparent"})} onClick={function(){togWD(sel,d);}}>
+            <span style={{color:wdOv?wdColor:(normalWork?"#94a3b8":"#cbd5e1"),fontWeight:wdOv?700:400,fontSize:wdOv?10:11}}>{wdLabel}</span>
+          </td>);
+          if(!worksToday)return(<tr key={d} style={{background:"#f8f8f8"}}>
+            <td style={Object.assign({},cs.c,{color:"#bbb"})}>{dn(yr,mo,d)} {d}</td>
+            {wdCell}
+            <td colSpan={3} style={Object.assign({},cs.c,{color:"#bbb",textAlign:"center"})}>non lavora</td></tr>);
           var swOv=swExc[k]&&swExc[k][sel];
           var isSW=(swOv==="SW")||(swOv!=="NO"&&u.swDay===dow);
           var swColor=swOv==="SW"?"#f59e0b":swOv==="NO"?"#d1d5db":(u.swDay===dow?"#2563eb":"transparent");
           if(isSW)return(<tr key={d} style={{background:"#eff6ff"}}><td style={Object.assign({},cs.c,{fontWeight:600})}>{dn(yr,mo,d)} {d}</td>
+            {wdCell}
             <td style={Object.assign({},cs.c,{textAlign:"center",cursor:"pointer",background:swColor+"30"})} onClick={function(){togSW(sel,d);}}><span style={{color:swColor,fontWeight:700}}>SW</span></td>
             <td colSpan={2} style={Object.assign({},cs.c,{color:"#94a3b8",textAlign:"center"})}>in SW</td></tr>);
           var codes=(exc[k]&&exc[k][sel])||[];
           return(<tr key={d}><td style={Object.assign({},cs.c,{fontWeight:600})}>{dn(yr,mo,d)} {d}</td>
+            {wdCell}
             <td style={Object.assign({},cs.c,{textAlign:"center",cursor:"pointer",background:swColor+"30"})} onClick={function(){togSW(sel,d);}}>
               {swOv==="NO"?<span style={{color:"#d1d5db",fontSize:10}}>no</span>:<span style={{color:"#94a3b8",fontSize:10}}>{"\u2014"}</span>}
             </td>
