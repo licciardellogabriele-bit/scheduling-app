@@ -2,33 +2,32 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 
 /* ═══════════ ACTIVITIES ═══════════ */
 var ACT=[
-{code:"222",label:"222",def:2,cat:"pc",alloc:"fix",ord:0,pair:false},
-{code:"CIC",label:"CIC",def:2,cat:"com",alloc:"fix",ord:1,pair:true},
-{code:"VD",label:"Visite Dirette",def:1,cat:"com",alloc:"fix",ord:3,pair:true},
-{code:"NICSP",label:"NIC sperim.",def:1,cat:"com",alloc:"fix",ord:4,pair:true},
-{code:"CIECHI",label:"Ciechi",def:1,cat:"com",alloc:"fix",ord:5,pair:true},
-{code:"NICMIN",label:"NIC minori",def:1,cat:"com",alloc:"fix",ord:6,pair:true},
+{code:"NICMIN",label:"NIC minori",def:1,cat:"com",alloc:"fix",ord:0,pair:true},
+{code:"NICSP",label:"NIC sperim.",def:1,cat:"com",alloc:"fix",ord:1,pair:true},
+{code:"222",label:"222",def:2,cat:"pc",alloc:"fix",ord:2,pair:false},
+{code:"CIECHI",label:"Ciechi",def:1,cat:"com",alloc:"fix",ord:3,pair:true},
+{code:"CIC",label:"CIC",def:2,cat:"com",alloc:"fix",ord:4,pair:true},
+{code:"VD",label:"Visite Dirette",def:1,cat:"com",alloc:"fix",ord:5,pair:true},
 {code:"NIC",label:"NIC",def:6,cat:"com",alloc:"fix",ord:7,pair:true},
 {code:"VDOM",label:"V. Domiciliari",def:0,cat:"com",alloc:"pre",ord:50,pair:true},
 {code:"PU",label:"Prest.Universale",def:0,cat:"pc",alloc:"pre",ord:51,pair:true},
-{code:"VALID",label:"VALIDAZIONI",def:0,cat:"pc",alloc:"dyn",ord:80,pair:false},
-{code:"ASP",label:"ASP",def:0,cat:"com",alloc:"dyn",ord:81,pair:false},
+{code:"VALID",label:"ATTI",def:0,cat:"pc",alloc:"dyn",ord:80,pair:false},
 {code:"EST",label:"Att.Esterna",def:0,cat:"st",alloc:"no",ord:99,pair:false},
 {code:"SW",label:"Smart Working",def:0,cat:"st",alloc:"no",ord:99,pair:false},
 {code:"FER",label:"Ferie",def:0,cat:"st",alloc:"no",ord:99,pair:false},
 ];
 var OPA=ACT.filter(function(a){return a.cat!=="st";});
-var DISP=["CIC","NIC","NICSP","VD","VDOM","PU","NICMIN","CIECHI","ASP","VALID","222"];
+var DISP=["CIC","NIC","NICSP","NICMIN","VD","222","VALID","PU","VDOM","CIECHI"];
 var OPD=DISP.map(function(c){return ACT.find(function(a){return a.code===c;});}).filter(Boolean);
 var FIX=ACT.filter(function(a){return a.alloc==="fix";}).sort(function(a,b){return a.ord-b.ord;});
 var SLOTABLE=FIX.concat([ACT.find(function(a){return a.code==="NIC";})]);
 var WDS=[{n:1,l:"Lun"},{n:2,l:"Mar"},{n:3,l:"Mer"},{n:4,l:"Gio"},{n:5,l:"Ven"}];
-var COL={CIC:{bg:"#fef3c7",tx:"#92400e",bd:"#fcd34d"},NIC:{bg:"#e0e7ff",tx:"#3730a3",bd:"#a5b4fc"},NICSP:{bg:"#e0f2fe",tx:"#075985",bd:"#7dd3fc"},NICMIN:{bg:"#ddd6fe",tx:"#6d28d9",bd:"#a78bfa"},VD:{bg:"#d1fae5",tx:"#065f46",bd:"#6ee7b7"},VDOM:{bg:"#a7f3d0",tx:"#064e3b",bd:"#34d399"},PU:{bg:"#fef9c3",tx:"#854d0e",bd:"#fde047"},VALID:{bg:"#fce7f3",tx:"#9d174d",bd:"#f9a8d4"},222:{bg:"#ede9fe",tx:"#5b21b6",bd:"#c4b5fd"},ASP:{bg:"#cffafe",tx:"#155e75",bd:"#67e8f9"},CIECHI:{bg:"#ffe4e6",tx:"#9f1239",bd:"#fda4af"}};
+var COL={CIC:{bg:"#fef3c7",tx:"#92400e",bd:"#fcd34d"},NIC:{bg:"#e0e7ff",tx:"#3730a3",bd:"#a5b4fc"},NICSP:{bg:"#e0f2fe",tx:"#075985",bd:"#7dd3fc"},NICMIN:{bg:"#ddd6fe",tx:"#6d28d9",bd:"#a78bfa"},VD:{bg:"#d1fae5",tx:"#065f46",bd:"#6ee7b7"},VDOM:{bg:"#dbeafe",tx:"#1e3a8a",bd:"#93c5fd"},PU:{bg:"#fef9c3",tx:"#854d0e",bd:"#fde047"},VALID:{bg:"#fce7f3",tx:"#9d174d",bd:"#f9a8d4"},222:{bg:"#ede9fe",tx:"#5b21b6",bd:"#c4b5fd"},CIECHI:{bg:"#ffe4e6",tx:"#9f1239",bd:"#fda4af"}};
 var VDOM_PAIRS=[["Costa Manuela","Arcifa Veronica"],["Ligreggi Antonella","Scifo Nicole"],["Liuzzo Ludovico","Grieco Angela"],["Di Paola Danila","Iosia Serena"],["Lo Pumo Roberta","Sofia Salvatore"],["Palmeri Andrea","Tumino Mariagrazia"],["Bonfiglio Claudia","Spina Anna"]];
 
 /* ═══════════ USERS ═══════════ */
 var DU=[
-["Arcifa Veronica",true,"STR",false,true,[1,2,3,4,5],null,false],
+["Arcifa Veronica",true,"STR",false,false,[1,2,3,4,5],null,false],
 ["Alberio Anna",false,"ACN",false,false,[1,3,4,5],null,false],
 ["Amato Chiara",false,"STR",false,false,[1,2,3,4,5],null,false],
 ["Bonfiglio Claudia",true,"STR",true,true,[1,2,3,4,5],4,false],
@@ -83,13 +82,13 @@ function isOff(y,m,d){return isWE(y,m,d)||!!isH(y,m,d);}
 function mAS(vo){var s={};ACT.forEach(function(a){s[a.code]=vo?{al:false,w:0}:{al:a.code!=="222"&&a.code!=="VDOM"&&a.code!=="PU",w:1};});return s;}
 function mU(nm,ml,ct,e2,ec,wd,sw,vo,id){return{id:id||("u"+Date.now()+"_"+Math.random().toString(36).slice(2,8)),name:nm,ml:ml,ct:ct,e222:e2,eCi:ec,wd:wd||[1,2,3,4,5],swDay:sw,vo:!!vo,notes:"",as:mAS(vo)};}
 function mDU(){
-  var NP=["Milana Maria Chiara","Calabrese Giorgia"],CP=["Licciardello Gabriele","Russo Ilenia","Sofia Salvatore"];
+  var NP=["Calabrese Giorgia","Nannola Chiara"],CP=["Licciardello Gabriele","Russo Ilenia","Sofia Salvatore"];
   return DU.map(function(r,i){
     var u=mU(r[0],r[1],r[2],r[3],r[4],r[5],r[6],r[7],"d"+i);
     if(NP.includes(u.name))u.as.NICMIN={al:true,w:3};
     if(CP.includes(u.name))u.as.CIECHI={al:true,w:3};
     if(u.e222)u.as["222"]={al:true,w:1};
-    if(u.name==="Arcifa Veronica"){ACT.forEach(function(a){u.as[a.code]=(a.code==="CIECHI"||a.code==="VDOM")?{al:true,w:1}:{al:false,w:0};});}
+    if(u.name==="Arcifa Veronica"){ACT.forEach(function(a){u.as[a.code]=(a.code==="VDOM")?{al:true,w:1}:{al:false,w:0};});u.eCi=false;}
     return u;
   });
 }
@@ -236,17 +235,47 @@ function gen(year,month,users,gS,dayOv,eInd,inc,dRestr,locks,currentAsg){
       var act=FIX[fi];var ac=act.code;
       if(dayLockFlags[ac]&&dayAsg[ac]){out[k][ac]=dayAsg[ac].slice();dayAsg[ac].forEach(function(uid){if(uid){dU.add(uid);dA.add(uid);}});continue;}
       var ov=dayOv[k]&&dayOv[k][ac];var en=ov?(ov.enabled!==false):true;
-      if((ac==="NICMIN"||ac==="CIECHI")&&!ov)en=false;
+      if(ac==="CIECHI"&&!ov)en=false;
       if(!en){out[k][ac]=[];continue;}
       var nP=(ov&&typeof ov.slots==="number")?ov.slots:(gS[ac]!==undefined?gS[ac]:act.def);
 
       if(ac==="CIC"||ac==="VD"){out[k][ac]=sPairs(ac,nP);}
       else if(ac==="NICSP"){
-        var spR=[];for(var si=0;si<nP;si++){var spP=gP(ac,function(u){return u.ml&&u.ct==="STR";});if(!spP.length)spP=gP(ac,function(u){return u.ml;});if(!spP.length)spP=gP(ac,null);var s1=pk(spP,ac,true);if(!s1)break;aF(s1.id,ac);var s2=pk(gP(ac,null),ac,false);if(!s2)break;aF(s2.id,ac);spR.push(s1.id,s2.id);}
+        // NICSP: fill robustly. President: prefer ML strutturato, then any ML, then anyone. Partner: anyone.
+        var spR=[];
+        for(var si=0;si<nP;si++){
+          var spP=gP(ac,function(u){return u.ml&&u.ct==="STR";});
+          if(!spP.length)spP=gP(ac,function(u){return u.ml;});
+          if(!spP.length)spP=gP(ac,null);
+          var s1=pk(spP,ac,true);if(!s1)break;aF(s1.id,ac);
+          var s2=pk(gP(ac,null),ac,false);if(!s2)break;aF(s2.id,ac);
+          spR.push(s1.id,s2.id);
+        }
         out[k][ac]=spR;
       } else if(ac==="NICMIN"){
-        var npi=function(u){return u.name==="Milana Maria Chiara"||u.name==="Calabrese Giorgia";};
-        var nmR=[];for(var ni=0;ni<nP;ni++){var npP=gP(ac,npi);if(!npP.length)break;var mlP2=gP(ac,function(u){return u.ml;});if(!mlP2.length)mlP2=gP(ac,null);var ml2=pk(mlP2,ac,true);if(!ml2)break;aF(ml2.id,ac);var np2=pk(gP(ac,npi),ac,false);if(!np2)break;aF(np2.id,ac);nmR.push(ml2.id,np2.id);}
+        // NICMIN: NPI required (Milana excluded — on leave). Alternate Nannola/Calabrese by day parity.
+        // President: any ML (or anyone). Partner: the NPI.
+        var npiList=["Calabrese Giorgia","Nannola Chiara"]; // Milana out (pregnant)
+        var npiFn=function(u){return npiList.indexOf(u.name)>=0;};
+        // Day-parity preference: even day → Nannola first, odd day → Calabrese first
+        var dayNum=d;
+        var preferNannola=(dayNum%2===0);
+        var nmR=[];
+        for(var ni=0;ni<nP;ni++){
+          var npP=gP(ac,npiFn);
+          if(!npP.length)break; // no NPI available → cannot form
+          // Pick NPI with alternation preference
+          var npiPick=null;
+          var wantName=preferNannola?"Nannola Chiara":"Calabrese Giorgia";
+          var altName=preferNannola?"Calabrese Giorgia":"Nannola Chiara";
+          npiPick=npP.find(function(u){return u.name===wantName;})||npP.find(function(u){return u.name===altName;})||npP[0];
+          // President: any ML not the NPI, else anyone
+          var presP=gP(ac,function(u){return u.ml&&u.id!==npiPick.id;});
+          if(!presP.length)presP=gP(ac,function(u){return u.id!==npiPick.id;});
+          var pres=pk(presP,ac,true);if(!pres)break;aF(pres.id,ac);
+          aF(npiPick.id,ac);
+          nmR.push(pres.id,npiPick.id);
+        }
         out[k][ac]=nmR;
       } else if(ac==="CIECHI"){
         var cR=[];for(var ci=0;ci<nP;ci++){var prP=gP(ac,function(u){return u.eCi;});if(!prP.length)prP=gP(ac,null);var pr=pk(prP,ac,true);if(!pr)break;aF(pr.id,ac);var c2=pk(gP(ac,null),ac,false);if(!c2)break;aF(c2.id,ac);cR.push(pr.id,c2.id);}
@@ -286,32 +315,20 @@ function gen(year,month,users,gS,dayOv,eInd,inc,dRestr,locks,currentAsg){
       }
     }
 
-    // VALID/ASP catch-all: respect activity settings
+    // VALID (ATTI) catch-all: respect activity settings. ASP removed.
     if(dayLockFlags.VALID&&dayAsg.VALID){
       out[k].VALID=dayAsg.VALID.slice();dayAsg.VALID.forEach(function(uid){if(uid){dU.add(uid);dA.add(uid);}});
     } else {
-      var vP=[];gP("VALID",function(u){return u.ct==="STR";}).forEach(function(u){vP.push(u.id);aF(u.id,"VALID");});
+      var vP=[];gP("VALID",null).forEach(function(u){vP.push(u.id);aF(u.id,"VALID");});
       out[k].VALID=vP;
     }
-    if(dayLockFlags.ASP&&dayAsg.ASP){
-      out[k].ASP=dayAsg.ASP.slice();dayAsg.ASP.forEach(function(uid){if(uid){dU.add(uid);dA.add(uid);}});
-    } else {
-      var aP=[];gP("ASP",function(u){return u.ct==="ACN";}).forEach(function(u){aP.push(u.id);aF(u.id,"ASP");});
-      out[k].ASP=aP;
-    }
 
-    // FINAL CATCH-ALL: anyone still not placed goes to VALID(STR) or ASP(ACN)
+    // FINAL CATCH-ALL: anyone still not placed goes to VALID (ATTI)
     if(!out[k].VALID)out[k].VALID=[];
-    if(!out[k].ASP)out[k].ASP=[];
     var still=norm.filter(function(u){return !un.has(u.id)&&!dU.has(u.id)&&u.wd.includes(dow)&&u.swDay!==dow;});
     still.forEach(function(u){
-      if(u.ct==="STR"){
-        var vs=u.as&&u.as.VALID;if(vs&&vs.al===false)return; // respect disabled VALID (e.g. Arcifa)
-        out[k].VALID.push(u.id);aF(u.id,"VALID");
-      } else {
-        var as2=u.as&&u.as.ASP;if(as2&&as2.al===false)return;
-        out[k].ASP.push(u.id);aF(u.id,"ASP");
-      }
+      var vs=u.as&&u.as.VALID;if(vs&&vs.al===false)return; // respect disabled VALID (e.g. Arcifa)
+      out[k].VALID.push(u.id);aF(u.id,"VALID");
     });
 
   }
@@ -324,7 +341,7 @@ function expHTML(yr,mo,nd,sn,asg,eInd,dOv,gS){
   var colH=OPD.map(function(a){var c=COL[a.code];return'<th style="padding:3px;font-size:8pt;font-weight:700;border:1px solid #bbb;text-align:center;background:'+(c?c.bg:"#f8fafc")+';color:'+(c?c.tx:"#334155")+'">'+a.code+'</th>';}).join("");
   var rows="";
   for(var d=1;d<=nd;d++){var k=dk(yr,mo,d),we=isWE(yr,mo,d),hol=isH(yr,mo,d),off=we||!!hol;var da=asg[k]||{},di=eInd[k]||{};var bg=hol?"#fee2e2":we?"#f1f5f9":(d%2===0?"#fafafc":"#fff");var dc=hol?"#dc2626":we?"#94a3b8":"#334155";var lbl=dn(yr,mo,d)+" "+d+(hol?" "+hol:"");
-    var cells=OPD.map(function(a){if(off)return'<td style="border:1px solid #bbb;background:'+bg+'"></td>';var ov=dOv[k]&&dOv[k][a.code];var en=ov?(ov.enabled!==false):true;if((a.code==="NICMIN"||a.code==="CIECHI")&&!ov)en=false;if(!en)return'<td style="border:1px solid #bbb;background:#fafafa;color:#ccc;text-align:center">\u2014</td>';
+    var cells=OPD.map(function(a){if(off)return'<td style="border:1px solid #bbb;background:'+bg+'"></td>';var ov=dOv[k]&&dOv[k][a.code];var en=ov?(ov.enabled!==false):true;if(a.code==="CIECHI"&&!ov)en=false;if(!en)return'<td style="border:1px solid #bbb;background:#fafafa;color:#ccc;text-align:center">\u2014</td>';
       var uids=da[a.code]||[];var names=uids.map(function(uid){return sn[uid]||"?";});var c=COL[a.code];var inner="";
       if(a.pair&&names.length>=2){var gi2=0;while(gi2<names.length){var gs=gi2+1<names.length?2:1;inner+='<div style="border:1px solid '+(c?c.bd:"#ddd")+';border-radius:3px;padding:1px 3px;margin-bottom:1px;background:'+(c?c.bg:"#fff")+'">';for(var gj=0;gj<gs;gj++){inner+='<div style="font-weight:'+(gj===0?'700':'400')+';font-size:7pt;color:'+(c?c.tx:"#333")+'">'+names[gi2+gj]+'</div>';}inner+='</div>';gi2+=gs;}}
       else{names.forEach(function(n){inner+='<div style="font-size:7pt;color:'+(c?c.tx:"#333")+'">'+n+'</div>';});}
@@ -353,12 +370,52 @@ export default function App(){
   var doSave=useCallback(function(){sSave({users:users,gS:gS,inc:inc,dR:dR,ovA:ovA,asA:asA,exA:exA,swE:swE,wdE:wdE,ntA:ntA,locks:locks}).then(function(){sSv(true);});},[users,gS,inc,dR,ovA,asA,exA,swE,wdE,ntA,locks]);
 
   var fileRef=useRef(null);
-  var doExpJ=useCallback(function(){var data={users:users,gS:gS,inc:inc,dR:dR,ovA:ovA,asA:asA,exA:exA,swE:swE,wdE:wdE,ntA:ntA,locks:locks,_v:"v12"};var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download="CML_backup_"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(a);a.click();document.body.removeChild(a);},[users,gS,inc,dR,ovA,asA,exA,swE,wdE,ntA,locks]);
+  var doExpJ=useCallback(function(){var data={users:users,gS:gS,inc:inc,dR:dR,ovA:ovA,asA:asA,exA:exA,swE:swE,wdE:wdE,ntA:ntA,locks:locks,_v:"v13"};var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download="CML_backup_"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(a);a.click();document.body.removeChild(a);},[users,gS,inc,dR,ovA,asA,exA,swE,wdE,ntA,locks]);
   var doImpJ=function(e){var file=e.target.files&&e.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(ev){try{var d=JSON.parse(ev.target.result);var u=sanU(d.users);if(u&&u.length)sU(u);sGS(sanS(d.gS));sInc(sanA(d.inc));if(d.dR)sDR(sanO(d.dR));sOvA(sanOv(sanO(d.ovA)));sAsA(sanO(d.asA));sExA(sanO(d.exA));sSWE(sanO(d.swE||{}));sWDE(sanO(d.wdE||{}));sNtA(sanO(d.ntA));sLocks(sanO(d.locks||{}));sSv(false);sM({title:"OK",msg:"Importato. Clicca Salva.",onOk:function(){sM(null);}});}catch(err){sM({title:"Errore",msg:String(err),onOk:function(){sM(null);}});}};reader.readAsText(file);e.target.value="";};
 
   var mk=yr+"-"+mo;var dOv=ovA[mk]||{};var asg=asA[mk]||{};var exc=exA[mk]||{};var swExc=swE[mk]||{};var wdExc=wdE[mk]||{};var mNt=ntA[mk]||"";var mLk=locks[mk]||{};var nd=nD(yr,mo);
   var sn=useMemo(function(){return sN(users);},[users]);
   var eInd=useMemo(function(){return bInd(yr,mo,users,exc,swExc,wdExc);},[yr,mo,users,exc,swExc,wdExc]);
+
+  // Auto-clean: when availability (FER/SW/EST/work-day) changes, remove now-unavailable
+  // people from the grid so it doesn't show stale assignments. VDOM pairs are cleaned together.
+  var cleanRef=useRef("");
+  useEffect(function(){
+    var cur=asA[mk];if(!cur)return;
+    // Build unavailable set per day
+    var changed=false;
+    var next=JSON.parse(JSON.stringify(cur));
+    Object.keys(next).forEach(function(dkk){
+      var day=next[dkk];var dayInd=eInd[dkk]||{};
+      Object.keys(day).forEach(function(code){
+        var arr=day[code];if(!Array.isArray(arr))return;
+        if(code==="VDOM"){
+          // Clean whole pairs: if either member unavailable, drop the pair
+          var newV=[];
+          for(var i=0;i<arr.length;i+=2){
+            var a=arr[i],b=arr[i+1];
+            var aBad=a&&dayInd[a]&&dayInd[a].length;
+            var bBad=b&&dayInd[b]&&dayInd[b].length;
+            if(aBad||bBad){changed=true;continue;}
+            if(a)newV.push(a);if(b)newV.push(b);
+          }
+          if(newV.length!==arr.length)day[code]=newV;
+        } else {
+          var filtered=arr.filter(function(uid){
+            if(!uid)return false;
+            var bad=dayInd[uid]&&dayInd[uid].length;
+            if(bad)changed=true;
+            return !bad;
+          });
+          if(filtered.length!==arr.length)day[code]=filtered;
+        }
+      });
+    });
+    if(changed){
+      var sig=JSON.stringify(next);
+      if(sig!==cleanRef.current){cleanRef.current=sig;sAsA(function(p){var o=Object.assign({},p);o[mk]=next;return o;});}
+    }
+  },[eInd,mk]);
 
   var sDO=useCallback(function(fn){sOvA(function(p){var o=Object.assign({},p);o[mk]=typeof fn==="function"?fn(p[mk]||{}):fn;return o;});},[mk]);
   var sAS=useCallback(function(v){sAsA(function(p){var o=Object.assign({},p);o[mk]=typeof v==="function"?v(p[mk]||{}):v;return o;});},[mk]);
@@ -367,6 +424,37 @@ export default function App(){
   var sWD=useCallback(function(fn){sWDE(function(p){var o=Object.assign({},p);o[mk]=typeof fn==="function"?fn(p[mk]||{}):fn;return o;});},[mk]);
   var sNt=useCallback(function(v){sNtA(function(p){var o=Object.assign({},p);o[mk]=v;return o;});},[mk]);
   var sLk=useCallback(function(fn){sLocks(function(p){var o=Object.assign({},p);o[mk]=typeof fn==="function"?fn(p[mk]||{}):fn;return o;});},[mk]);
+
+  // AUTO-CLEANUP: when availability (ferie/SW/N-D) changes, remove now-unavailable people from the grid.
+  // Paired commissions leave a null hole (partner stays put); singles compact.
+  var pairedCodes=useMemo(function(){var s={};ACT.forEach(function(a){if(a.pair)s[a.code]=true;});return s;},[]);
+  useEffect(function(){
+    if(!asg||!Object.keys(asg).length)return;
+    var changed=false;
+    var next={};
+    Object.keys(asg).forEach(function(k){
+      var day=asg[k];var newDay={};
+      var dLocked=mLk[k]||{};
+      Object.keys(day).forEach(function(code){
+        var arr=day[code];
+        if(!Array.isArray(arr)){newDay[code]=arr;return;}
+        // Locked cells and VDOM/PU are left untouched
+        if(dLocked[code]||code==="VDOM"||code==="PU"){newDay[code]=arr;return;}
+        var unavail=eInd[k]||{};
+        var isPair=pairedCodes[code];
+        var out2=arr.map(function(uid){
+          if(uid&&unavail[uid])return isPair?null:undefined; // remove unavailable
+          return uid;
+        });
+        if(!isPair)out2=out2.filter(function(x){return x!==undefined;});
+        // Detect change
+        if(out2.length!==arr.length||out2.some(function(v,i){return v!==arr[i];}))changed=true;
+        newDay[code]=out2;
+      });
+      next[k]=newDay;
+    });
+    if(changed)sAS(next);
+  },[eInd]);// eslint-disable-line
 
   var doGen=useCallback(function(){sM({title:"Genera",msg:"Sovrascrive (tranne celle bloccate).",onOk:function(){var r=gen(yr,mo,users,gS,dOv,eInd,inc,dR,mLk,asg);sAS(r.asg);sGenAlerts(r.alerts||{});sM(null);}});},[yr,mo,users,gS,dOv,eInd,inc,dR,mLk,asg,sAS]);
   var doExpH=useCallback(function(){expHTML(yr,mo,nd,sn,asg,eInd,dOv,gS);},[yr,mo,nd,sn,asg,eInd,dOv,gS]);
@@ -382,7 +470,7 @@ export default function App(){
     <style>{PCSS}</style>
     <Modal show={!!modal} title={modal?modal.title:""} msg={modal?modal.msg:""} onOk={modal?modal.onOk:null} onCancel={function(){sM(null);}}/>
     <div className="no-print" style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8,flexWrap:"wrap",gap:8}}>
-      <div style={{display:"flex",alignItems:"baseline",gap:10}}><span style={{fontSize:20,fontWeight:800,background:"linear-gradient(135deg,#1e40af,#7c3aed)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>CML Catania</span><span style={{fontSize:12,color:"#94a3b8",fontWeight:500}}>Planning Mensile · v12</span></div>
+      <div style={{display:"flex",alignItems:"baseline",gap:10}}><span style={{fontSize:20,fontWeight:800,background:"linear-gradient(135deg,#1e40af,#7c3aed)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>CML Catania</span><span style={{fontSize:12,color:"#94a3b8",fontWeight:500}}>Planning Mensile · v13</span></div>
       <div style={{display:"flex",alignItems:"center",gap:6}}>
         <button onClick={doSave} style={Object.assign({},cs.bp,{background:saved?"#16a34a":"#dc2626",padding:"5px 14px",fontSize:12})}>{saved?"\u2713 Salvato":"Salva"}</button>
         <button onClick={doExpJ} style={Object.assign({},cs.bs,{fontSize:11,padding:"4px 8px"})}>{"\u2B07"}JSON</button>
@@ -548,8 +636,8 @@ function VMese(p){
         var tgtUid=(tgtIdx<arr.length)?arr[tgtIdx]:null;
         if(tgtIdx<arr.length){arr[tgtIdx]=dr.uid;}
         else{arr.push(dr.uid);}
-        if(tgtUid){arr[dr.idx]=tgtUid;}
-        else{arr.splice(dr.idx,1);}
+        if(tgtUid){arr[dr.idx]=tgtUid;} // swap
+        else{arr[dr.idx]=null;} // move → leave hole (partner stays put)
         o[dr.dk][dr.code]=arr;
       } else {
         // Different column/day → two separate arrays
@@ -558,8 +646,8 @@ function VMese(p){
         var tgtUid2=(tgtIdx<tgtArr2.length)?tgtArr2[tgtIdx]:null;
         if(tgtIdx<tgtArr2.length){tgtArr2[tgtIdx]=dr.uid;}
         else{tgtArr2.push(dr.uid);}
-        if(tgtUid2){srcArr2[dr.idx]=tgtUid2;}
-        else{srcArr2.splice(dr.idx,1);}
+        if(tgtUid2){srcArr2[dr.idx]=tgtUid2;} // swap
+        else{srcArr2[dr.idx]=null;} // move → leave hole (partner stays put)
         o[dr.dk][dr.code]=srcArr2;
         o[tgtDk][tgtCode]=tgtArr2;
       }
@@ -665,14 +753,36 @@ function VMese(p){
               {OPD.map(function(a){
                 if(off)return(<td key={a.code} style={Object.assign({},cs.c,{background:bg})}/>);
                 var ov=dOv[k]&&dOv[k][a.code];var en=ov?(ov.enabled!==false):true;
-                if((a.code==="NICMIN"||a.code==="CIECHI")&&!ov)en=false;
+                if(a.code==="CIECHI"&&!ov)en=false;
                 if(!en)return(<td key={a.code} style={Object.assign({},cs.c,{background:"#fafafa",color:"#cbd5e1",textAlign:"center",fontSize:9})}>{"\u2014"}</td>);
-                var uids=(da[a.code]||[]).filter(function(u){return u!==null&&u!==undefined;});var c=COL[a.code];
+                var rawUids=da[a.code]||[];
+                var isP=PA.includes(a.code);
+                // For paired activities keep null holes (empty slots to fill); others compact
+                var uids=isP?rawUids.slice():rawUids.filter(function(u){return u!==null&&u!==undefined;});
+                var c=COL[a.code];
                 var isLocked=mLk[k]&&mLk[k][a.code];
-                var isP=PA.includes(a.code);var cc=[];
+                var cc=[];
 
                 // Render names with drag support
                 var renderName=function(uid,idx){
+                  if(uid===null||uid===undefined){
+                    var isEdE=edit&&edit.dk===k&&edit.code===a.code&&edit.idx===idx;
+                    if(isEdE){
+                      var avE=gAv(k,a.code,idx);
+                      return(<select key={idx} autoFocus value="" style={Object.assign({},cs.inp,{fontSize:9,padding:"1px",width:"100%"})}
+                        onChange={function(e){if(e.target.value)swapCell(k,a.code,idx,e.target.value);}}
+                        onBlur={function(){setTimeout(function(){sEdit(null);},150);}}>
+                        <option value="">Aggiungi...</option>
+                        {avE.map(function(u2){return(<option key={u2.id} value={u2.id}>{sn[u2.id]}</option>);})}
+                      </select>);
+                    }
+                    return(<div key={idx}
+                      onDragOver={onDO}
+                      onDrop={function(e){onDrop(e,k,a.code,idx);}}
+                      onClick={function(){sEdit({dk:k,code:a.code,idx:idx});}}
+                      title="Posto vuoto \u2014 clicca o trascina per riempire"
+                      style={{minHeight:12,border:"1px dashed "+(c?c.bd:"#cbd5e1"),borderRadius:2,cursor:"pointer",background:"repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(0,0,0,0.03) 3px,rgba(0,0,0,0.03) 6px)"}}>{"\u00A0"}</div>);
+                  }
                   var u=users.find(function(x){return x.id===uid;});
                   var isStr=u&&u.ct==="STR";
                   var isVdomCell=a.code==="VDOM";
@@ -761,7 +871,7 @@ function VSlot(p){
   var gS=p.gS,sGS=p.sGS,yr=p.yr,mo=p.mo,nd=p.nd,dOv=p.dOv,sDO=p.sDO;
   var wd=useMemo(function(){var r=[];for(var i=1;i<=nd;i++){if(!isOff(yr,mo,i))r.push(i);}return r;},[yr,mo,nd]);
   var chg=function(code,val){var n=parseInt(val,10);if(isNaN(n)||n<0)return;sGS(function(prev){var o=Object.assign({},prev);o[code]=n;return o;});};
-  var togD=function(d,code){var k=dk(yr,mo,d);sDO(function(prev){var c=Object.assign({},prev);c[k]=Object.assign({},c[k]||{});var ov=c[k][code];var defOn=(code!=="NICMIN"&&code!=="CIECHI");var curOn=ov?(ov.enabled!==false):defOn;var newOn=!curOn;var newOv=Object.assign({},ov||{},{enabled:newOn});if(newOn&&newOv.slots===0)delete newOv.slots;c[k][code]=newOv;return c;});};
+  var togD=function(d,code){var k=dk(yr,mo,d);sDO(function(prev){var c=Object.assign({},prev);c[k]=Object.assign({},c[k]||{});var ov=c[k][code];var defOn=(code!=="CIECHI");var curOn=ov?(ov.enabled!==false):defOn;var newOn=!curOn;var newOv=Object.assign({},ov||{},{enabled:newOn});if(newOn&&newOv.slots===0)delete newOv.slots;c[k][code]=newOv;return c;});};
   var setDS=function(d,code,val){var n=parseInt(val,10);var k=dk(yr,mo,d);sDO(function(prev){var c=Object.assign({},prev);c[k]=Object.assign({},c[k]||{});var cur=c[k][code]||{enabled:true};c[k][code]=Object.assign({},cur,{slots:isNaN(n)?undefined:n});return c;});};
   var QK=["CIECHI","NICSP","NICMIN"];
   return(<div>
@@ -776,7 +886,7 @@ function VSlot(p){
       <table style={{borderCollapse:"collapse"}}><thead><tr><th style={cs.h}>Giorno</th>
         {QK.map(function(c){return(<th key={c} style={Object.assign({},cs.h,{width:70})}>{c}</th>);})}</tr></thead>
         <tbody>{wd.map(function(d){var k=dk(yr,mo,d);return(<tr key={d}><td style={cs.c}>{dn(yr,mo,d)} {d}</td>
-          {QK.map(function(code){var ov=dOv[k]&&dOv[k][code];var en=ov?(ov.enabled!==false):true;if((code==="NICMIN"||code==="CIECHI")&&!ov)en=false;
+          {QK.map(function(code){var ov=dOv[k]&&dOv[k][code];var en=ov?(ov.enabled!==false):true;if(code==="CIECHI"&&!ov)en=false;
             return(<td key={code} style={Object.assign({},cs.c,{textAlign:"center"})}><input type="checkbox" checked={en} onChange={function(){togD(d,code);}}/></td>);})}</tr>);})}</tbody></table></div>
     <h3 style={{fontSize:14,fontWeight:700,marginBottom:6}}>Override <span style={{fontWeight:400,fontSize:11,color:"#64748b"}}>(solo {MN[mo]})</span></h3>
     <div style={{overflowX:"auto"}}><table style={{borderCollapse:"collapse"}}><thead><tr><th style={cs.h}>Giorno</th>
