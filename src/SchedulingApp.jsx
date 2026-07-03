@@ -315,6 +315,39 @@ function gen(year,month,users,gS,dayOv,eInd,inc,dRestr,locks,currentAsg){
       }
     }
 
+    // RESCUE PASS: ensure NICSP and NICMIN are filled (they must never stay empty if fillable).
+    // Runs before VALID catch-all so residual people are used for these commissions first.
+    function rescueFill(ac){
+      var ovR=dayOv[k]&&dayOv[k][ac];var enR=ovR?(ovR.enabled!==false):true;
+      if(ac==="CIECHI"&&!ovR)enR=false;
+      if(!enR)return;
+      if(dayLockFlags[ac])return;
+      var target=(ovR&&typeof ovR.slots==="number")?ovR.slots:(gS[ac]!==undefined?gS[ac]:(ACT.find(function(x){return x.code===ac;})||{}).def);
+      var cur=out[k][ac]||[];
+      var have=Math.floor(cur.length/2);
+      while(have<target){
+        if(ac==="NICMIN"){
+          // Need one NPI (Nannola/Calabrese) + one ML partner
+          var npiFree=gP(ac,function(u){return u.name==="Nannola Chiara"||u.name==="Calabrese Giorgia";});
+          if(!npiFree.length)break;
+          var npR=pk(npiFree,ac,false);if(!npR)break;
+          var prR=gP(ac,function(u){return u.ml&&u.name!=="Nannola Chiara"&&u.name!=="Calabrese Giorgia";});
+          if(!prR.length)prR=gP(ac,null);
+          var pR=pk(prR,ac,true);if(!pR)break;
+          aF(npR.id,ac);aF(pR.id,ac);cur.push(pR.id,npR.id);
+        } else { // NICSP
+          var p1=gP(ac,function(u){return u.ml;});if(!p1.length)p1=gP(ac,null);
+          var a1=pk(p1,ac,true);if(!a1)break;
+          var p2=gP(ac,null);var a2=pk(p2,ac,false);if(!a2){break;}
+          aF(a1.id,ac);aF(a2.id,ac);cur.push(a1.id,a2.id);
+        }
+        have++;
+      }
+      out[k][ac]=cur;
+    }
+    rescueFill("NICMIN");
+    rescueFill("NICSP");
+
     // VALID (ATTI) catch-all: respect activity settings. ASP removed.
     if(dayLockFlags.VALID&&dayAsg.VALID){
       out[k].VALID=dayAsg.VALID.slice();dayAsg.VALID.forEach(function(uid){if(uid){dU.add(uid);dA.add(uid);}});
@@ -502,6 +535,35 @@ function VMese(p){
   var[edit,sEdit]=useState(null);
   var[alertDay,sAlertDay]=useState(null); // dateKey for alert modal
   var dragRef=useRef(null); // ref to avoid stale closure
+
+  // AUTO-REFRESH: when availability/leave changes, remove now-unavailable people from the grid.
+  // Paired activities keep the hole (null) so the partner stays put; singles compact.
+  var eIndRef=useRef(null);
+  useEffect(function(){
+    // Build set of unavailable (SW/FER/EST/N-D) per day
+    var changed=false;
+    var next=JSON.parse(JSON.stringify(asg));
+    Object.keys(next).forEach(function(dkey){
+      var day=next[dkey];if(!day)return;
+      var ind=eInd[dkey]||{};
+      Object.keys(day).forEach(function(code){
+        var arr=day[code];if(!Array.isArray(arr))return;
+        var isPair=["CIC","NIC","NICSP","NICMIN","VD","CIECHI","VDOM","PU"].indexOf(code)>=0;
+        for(var i=0;i<arr.length;i++){
+          var uid=arr[i];if(!uid)continue;
+          var st=ind[uid];
+          // st present and not just informational means unavailable
+          if(st&&(st.indexOf("SW")>=0||st.indexOf("FER")>=0||st.indexOf("EST")>=0||st.indexOf("N/D")>=0)){
+            if(isPair){arr[i]=null;} // leave hole
+            else{arr.splice(i,1);i--;} // compact singles
+            changed=true;
+          }
+        }
+      });
+    });
+    if(changed)sAS(next);
+    eIndRef.current=eInd;
+  },[eInd]);
 
   var modDay=function(fn){sAS(function(prev){return fn(JSON.parse(JSON.stringify(prev)));});};
   var swapCell=function(dk2,code,idx,uid){modDay(function(o){if(!o[dk2])o[dk2]={};var a=o[dk2][code]||[];a[idx]=uid;o[dk2][code]=a;return o;});sEdit(null);};
