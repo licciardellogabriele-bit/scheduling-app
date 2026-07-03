@@ -27,7 +27,7 @@ var VDOM_PAIRS=[["Costa Manuela","Arcifa Veronica"],["Ligreggi Antonella","Scifo
 
 /* ═══════════ USERS ═══════════ */
 var DU=[
-["Arcifa Veronica",true,"STR",false,false,[1,2,3,4,5],null,false],
+["Arcifa Veronica",true,"STR",false,false,[1,2,3,4,5],null,true],
 ["Alberio Anna",false,"ACN",false,false,[1,3,4,5],null,false],
 ["Amato Chiara",false,"STR",false,false,[1,2,3,4,5],null,false],
 ["Bonfiglio Claudia",true,"STR",true,true,[1,2,3,4,5],4,false],
@@ -566,23 +566,55 @@ function VMese(p){
   },[eInd]);
 
   var modDay=function(fn){sAS(function(prev){return fn(JSON.parse(JSON.stringify(prev)));});};
-  var swapCell=function(dk2,code,idx,uid){modDay(function(o){if(!o[dk2])o[dk2]={};var a=o[dk2][code]||[];a[idx]=uid;o[dk2][code]=a;return o;});sEdit(null);};
+  // Remove a uid from all activities of a day except keepCode (pairs→null hole, singles→compact)
+  var dedupDay=function(o,dk2,uid,keepCode,keepIdx){
+    if(!o[dk2]||!uid)return;
+    var pairCodes=["CIC","NIC","NICSP","NICMIN","VD","CIECHI","VDOM","PU"];
+    Object.keys(o[dk2]).forEach(function(code){
+      var arr=o[dk2][code];if(!Array.isArray(arr))return;
+      var isPair=pairCodes.indexOf(code)>=0;
+      for(var i=0;i<arr.length;i++){
+        if(arr[i]===uid&&!(code===keepCode&&i===keepIdx)){
+          if(isPair){arr[i]=null;}
+          else{arr.splice(i,1);i--;}
+        }
+      }
+    });
+  };
+  var swapCell=function(dk2,code,idx,uid){modDay(function(o){if(!o[dk2])o[dk2]={};var a=o[dk2][code]||[];a[idx]=uid;o[dk2][code]=a;dedupDay(o,dk2,uid,code,idx);return o;});sEdit(null);};
   var rmCell=function(dk2,code,idx){modDay(function(o){if(!o[dk2])o[dk2]={};var a=o[dk2][code]||[];a.splice(idx,1);o[dk2][code]=a;return o;});sEdit(null);};
-  var addCell=function(dk2,code,uid){modDay(function(o){if(!o[dk2])o[dk2]={};var a=o[dk2][code]||[];a.push(uid);o[dk2][code]=a;return o;});sEdit(null);};
+  var addCell=function(dk2,code,uid){modDay(function(o){if(!o[dk2])o[dk2]={};var a=o[dk2][code]||[];a.push(uid);o[dk2][code]=a;dedupDay(o,dk2,uid,code,a.length-1);return o;});sEdit(null);};
 
   // VDOM pair operations (always 2 at a time)
+  // Remove given uids from every activity of the day EXCEPT the target VDOM
+  // (pairs keep the hole as null so partner stays; singles compact)
+  var stripFromOthers=function(o,dk2,uids,keepCode){
+    if(!o[dk2])return;
+    var pairCodes=["CIC","NIC","NICSP","NICMIN","VD","CIECHI","VDOM","PU"];
+    Object.keys(o[dk2]).forEach(function(code){
+      if(code===keepCode)return;
+      var arr=o[dk2][code];if(!Array.isArray(arr))return;
+      var isPair=pairCodes.indexOf(code)>=0;
+      for(var i=0;i<arr.length;i++){
+        if(uids.indexOf(arr[i])>=0){
+          if(isPair){arr[i]=null;}
+          else{arr.splice(i,1);i--;}
+        }
+      }
+    });
+  };
   var addPairVD=function(dk2,nameA,nameB){
     var uA=users.find(function(x){return x.name===nameA;});
     var uB=users.find(function(x){return x.name===nameB;});
     if(!uA||!uB)return;
-    modDay(function(o){if(!o[dk2])o[dk2]={};var a=o[dk2].VDOM||[];a.push(uA.id);a.push(uB.id);o[dk2].VDOM=a;return o;});
+    modDay(function(o){if(!o[dk2])o[dk2]={};stripFromOthers(o,dk2,[uA.id,uB.id],"VDOM");var a=o[dk2].VDOM||[];a.push(uA.id);a.push(uB.id);o[dk2].VDOM=a;return o;});
     sEdit(null);
   };
   var replacePairVD=function(dk2,pairIdx,nameA,nameB){
     var uA=users.find(function(x){return x.name===nameA;});
     var uB=users.find(function(x){return x.name===nameB;});
     if(!uA||!uB)return;
-    modDay(function(o){if(!o[dk2])o[dk2]={};var a=(o[dk2].VDOM||[]).slice();a.splice(pairIdx*2,2,uA.id,uB.id);o[dk2].VDOM=a;return o;});
+    modDay(function(o){if(!o[dk2])o[dk2]={};stripFromOthers(o,dk2,[uA.id,uB.id],"VDOM");var a=(o[dk2].VDOM||[]).slice();a.splice(pairIdx*2,2,uA.id,uB.id);o[dk2].VDOM=a;return o;});
     sEdit(null);
   };
   var rmPairVD=function(dk2,pairIdx){
