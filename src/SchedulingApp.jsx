@@ -487,6 +487,7 @@ function mDS() {
 const VERSION = "v14";
 const STORAGE_KEY = "cml-v9";
 const BACKUP_KEY = "cml-v14-recovery";
+const ORIGINAL_KEY = "cml-v14-original-archive";
 const NPI_NAMES = ["Calabrese Giorgia", "Nannola Chiara", "Amore Greta"];
 const PU_NAMES = ["Palmeri Andrea", "Di Paola Danila"];
 const DEFAULT_OFF = new Set(["CIECHI", "CICNOTO", "CICVDSR"]);
@@ -514,10 +515,25 @@ const weekKey = (key) => {
   return dk(d.getFullYear(), d.getMonth(), d.getDate());
 };
 const pairKey = (pair) => pair.filter(Boolean).slice().sort().join("|");
-const allIds = (day) =>
-  Object.values(day || {}).flatMap((a) =>
-    Array.isArray(a) ? a.filter(Boolean) : [],
+const allIds = (day) => [...DISP, "ASP"].flatMap(code =>
+  Array.isArray(day?.[code]) ? day[code].filter(Boolean) : [],
+);
+function hasLegacyMonth(month) {
+  return Object.values(month || {}).some(day =>
+    Object.values(day._trios || {}).some(n => n > 0) ||
+    day.ASP?.length || day._missingIds?.length,
   );
+}
+function archiveActivities(month) {
+  return Object.values(month || {}).some(day => day.ASP?.length)
+    ? [...OPD, { code: "ASP", label: "ASP · storico", pair: false }]
+    : OPD;
+}
+function assertEditableMonth(month) {
+  if (hasLegacyMonth(month)) throw new Error(
+    "Questo mese contiene dati storici: puoi consultarli ed esportarli senza modificare le assegnazioni originali.",
+  );
+}
 function seedRandom(seed) {
   let a = 2166136261;
   for (const c of String(seed)) {
@@ -725,17 +741,25 @@ function sanitizeState(raw) {
         const day = {};
         for (const [id, value] of Object.entries(object(values))) {
           if (field === "asA") {
+            if (id === "_missingIds") continue; // Recomputed from the actual roster below.
+            if (id === "_trios") {
+              if (!value || typeof value !== "object" || Array.isArray(value) ||
+                Object.entries(value).some(([code,n]) => !AC[code]?.pair || !Number.isInteger(n) || n < 0 || n > 1000))
+                throw new Error("Indicazione delle terne non valida per " + key + ". L’originale resta disponibile.");
+              day._trios = clone(value);
+              continue;
+            }
             if (
-              !DISP.includes(id) ||
+              (!DISP.includes(id) && id !== "ASP") ||
               !Array.isArray(value) ||
               value.length > 1000
             )
-              throw new Error("Assegnazioni non valide per " + key + ".");
-            if (value.some((uid) => uid !== null && !used.has(uid)))
+              throw new Error("Campo «" + id + "» non riconosciuto nelle assegnazioni del " + key + ". L’originale resta disponibile.");
+            if (value.some((uid) => uid !== null && (typeof uid !== "string" || !/^[\w-]{1,100}$/.test(uid) || ["__proto__","constructor","prototype"].includes(uid))))
               throw new Error(
-                "Il planning contiene riferimenti a utenti mancanti. Importazione annullata per non perdere dati.",
+                "Il planning contiene un identificativo non valido per " + key + ". L’originale resta disponibile.",
               );
-            day[id] = AC[id].pair ? value.slice() : value.filter(Boolean);
+            day[id] = AC[id]?.pair || id === "ASP" ? value.slice() : value.filter(Boolean);
           } else if (field === "ovA" && DISP.includes(id)) {
             const v = object(value),
               o = {};
@@ -750,7 +774,7 @@ function sanitizeState(raw) {
             day[id] = o;
           } else if (field === "locks" && DISP.includes(id) && value === true)
             day[id] = true;
-          else if (used.has(id)) {
+          else if (/^[\w-]{1,100}$/.test(id) && !["__proto__","constructor","prototype"].includes(id)) {
             if (field === "exA" && Array.isArray(value)) {
               const v = unique(value.filter((c) => c === "FER" || c === "EST"));
               if (v.length) day[id] = v;
@@ -760,6 +784,10 @@ function sanitizeState(raw) {
             if (field === "wdE" && ["ON", "OFF"].includes(value))
               day[id] = value;
           }
+        }
+        if (field === "asA") {
+          const missing = unique(allIds(day).filter(uid => !used.has(uid)));
+          if (missing.length) day._missingIds = missing;
         }
         out[field][mk][key] = day;
       }
@@ -1071,6 +1099,7 @@ function residualReason(ctx, key, u, day) {
 }
 function cleanAvailability(ctx, month) {
   const next = clone(month || {});
+  if (hasLegacyMonth(month)) return next;
   for (const [key, day] of Object.entries(next))
     for (const code of DISP) {
       const arr = day[code];
@@ -1090,6 +1119,7 @@ function cleanAvailability(ctx, month) {
   return next;
 }
 function cleanExisting(ctx, key, raw, lockedFirst = true) {
+  assertEditableMonth({[key]:raw || {}});
   const day = emptyDay(),
     used = new Set();
   const order = DISP.slice().sort(
@@ -1172,6 +1202,7 @@ function removeUid(day, uid, keepCode = "", keepIndex = -1) {
   }
 }
 function applyManual(ctx, month, operation) {
+  assertEditableMonth(month);
   const next = clone(month || {}),
     keys = unique([operation.key, operation.source?.key].filter(Boolean));
   keys.forEach((k) => (next[k] ||= emptyDay()));
@@ -1621,6 +1652,7 @@ function lexLess(a, b) {
   return false;
 }
 function generateMonth(ctx, options = {}) {
+  assertEditableMonth(options.current || ctx.state.asA[ctx.mk]);
   const seed = String(options.seed ?? ctx.mk),
     attempts = options.attempts ?? 20,
     current = options.current || {};
@@ -1663,6 +1695,7 @@ function generateMonth(ctx, options = {}) {
   return { asg: best, seed, score: bestScore, attempts };
 }
 function repairDay(ctx, key, month) {
+  assertEditableMonth(month);
   const day = cleanExisting(ctx, key, month[key] || {}),
     previous = {};
   for (const k of ctx.workDays)
@@ -1769,6 +1802,27 @@ function localArchive() {
   return {
     label: "Questo dispositivo",
     shared: false,
+    readOriginal() { return localStorage.getItem(STORAGE_KEY); },
+    async recover(data, expectedOriginal) {
+      const write = () => {
+        const original = localStorage.getItem(STORAGE_KEY);
+        if (original !== expectedOriginal) throw new Error("La memoria è cambiata in un’altra finestra. Riprova prima di sostituirla.");
+        const next = sanitizeState(data);
+        let revision = 0;
+        try { revision = Number(JSON.parse(original)?._revision) || 0; } catch { /* Corrupt source remains backed up verbatim. */ }
+        const updatedAt = new Date().toISOString();
+        try {
+          if (original !== null) {
+            if (!localStorage.getItem(ORIGINAL_KEY)) localStorage.setItem(ORIGINAL_KEY, original);
+            localStorage.setItem(BACKUP_KEY, original);
+          }
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({...next,_revision:revision+1,_savedAt:updatedAt}));
+        } catch {
+          throw new Error("Recupero non salvato: memoria del browser piena o non disponibile. La memoria precedente è rimasta al suo posto; conserva la copia scaricata.");
+        }
+      };
+      return navigator.locks?.request ? navigator.locks.request(STORAGE_KEY,write) : write();
+    },
     async load() {
       const text = localStorage.getItem(STORAGE_KEY);
       if (!text) return { data: null, revision: 0, updatedAt: null };
@@ -1812,6 +1866,7 @@ function localArchive() {
             _savedAt: updatedAt,
           };
         try {
+          if (before && !localStorage.getItem(ORIGINAL_KEY)) localStorage.setItem(ORIGINAL_KEY, before);
           if (
             before &&
             (!old._savedAt ||
@@ -2031,6 +2086,7 @@ function useArchive(store) {
 
 /* Interface */
 const ICONS = {
+  expand: "M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5",
   calendar:
     "M8 2v4m8-4v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z",
   users:
@@ -2147,6 +2203,20 @@ const CSS = `
 @media(max-width:700px){.cml-app{display:block}.cml-sidebar{height:auto;position:static;padding:13px 15px;flex-direction:row;justify-content:space-between;gap:16px}.cml-brand div:last-child{display:block}.cml-brand strong{font-size:13px}.cml-brand small{font-size:8px}.cml-brand-mark{width:30px;height:30px}.cml-nav{display:flex;gap:2px;overflow:auto}.cml-nav button{padding:8px}.cml-nav button svg{width:17px}.cml-main{padding:19px 12px}.topline{margin-bottom:18px}.eyebrow{font-size:8px;max-width:130px;line-height:1.6}.save-state{font-size:10px}.cml-app h1{font-size:25px}.page-heading{align-items:flex-start}.page-heading .toolbar-group{gap:4px}.page-heading .cml-button{font-size:11px;padding:6px 8px}.month-heading{gap:8px}.month-nav{gap:2px}.summary-strip{gap:10px 17px;padding:12px}.summary-stat{font-size:10px}.summary-stat b{font-size:16px}.planning-scroll{max-height:65vh}.grid-intro span{display:none}.day-panel-grid{grid-template-columns:1fr}.cml-dialog{padding:18px}.panel{padding:16px}.banner{align-items:flex-start;flex-direction:column}}
 @media(max-width:700px){.cml-sidebar>.cml-brand{display:none}.cml-sidebar>div{min-width:0;width:100%}.cml-nav{width:100%;justify-content:space-between}.cml-nav button{min-width:34px;width:auto;flex:1}.page-heading{flex-wrap:wrap}.month-heading h1{white-space:nowrap}}
 @media(prefers-reduced-motion:reduce){.spinner{animation:none}}
+/* Fill the hosting page, including projects that still load Vite starter CSS. */
+html:has(.cml-app),body:has(.cml-app){margin:0;min-width:320px;width:100%;display:block;background:#f2f5f7}
+#root:has(.cml-app){width:100%;max-width:none!important;margin:0!important;padding:0!important;text-align:left}
+.cml-app{width:100%;color-scheme:light;text-align:left;line-height:1.4;grid-template-columns:176px minmax(0,1fr)}
+.cml-app button{text-transform:none;letter-spacing:normal}.cml-app .cml-main{padding:16px 18px}.cml-app .topline{margin-bottom:10px}.cml-app .page-heading{margin-bottom:12px}.cml-app h1{font-size:27px;line-height:1.2}.cml-app .toolbar{margin-bottom:12px}.cml-app .summary-strip{padding:9px 13px;margin-bottom:12px;gap:14px}.cml-app .grid-intro{padding:9px 13px}.cml-app .grid-footer{padding:8px 12px}.cml-app .cml-sidebar{padding:24px 12px;gap:24px}.cml-app .cml-brand{padding:0}.cml-app .cml-nav button{padding:11px 9px}
+.cml-app.planning-page{height:100dvh;min-height:0;overflow:hidden}.planning-page .cml-main{height:100dvh;min-height:0;display:flex;flex-direction:column;overflow:hidden}.planning-page .cml-main>div,.planning-page .cml-main>header{flex-shrink:0}.planning-page .cml-main>.grid-card{display:flex;flex-direction:column;flex:1 1 0;min-height:0}.planning-page .planning-scroll{flex:1 1 0;min-height:0;max-height:none}.planning-page .grid-intro,.planning-page .grid-footer,.planning-page .empty-planning{flex-shrink:0}
+.cml-app.grid-focus{grid-template-columns:minmax(0,1fr)}.grid-focus .cml-sidebar,.grid-focus .summary-strip,.grid-focus .grid-intro{display:none}.grid-focus .cml-main{padding:10px 12px}.grid-focus .topline{margin-bottom:5px}.grid-focus .page-heading{margin-bottom:8px}.grid-focus .toolbar{margin-bottom:8px}
+.planning-scroll.compact .name-button{font-size:12px;min-height:21px;padding:1px 2px}.planning-scroll.compact .pair-tile{padding:2px 3px;margin-bottom:3px}
+.legacy-label{font-size:10px;color:#7c6438;line-height:1.4;margin-bottom:6px;white-space:normal}.legacy-name{font-size:12px;padding:4px 2px;white-space:nowrap}.legacy-name.str{font-weight:650}.legacy-role{font-size:8px;border:1px solid #9baeb9;border-radius:3px;padding:0 2px;margin-left:4px}.legacy-grid .planning-table td{min-width:130px}.legacy-grid .planning-table .date-col{min-width:78px}.legacy-grid .planning-table tbody .date-col{top:auto;z-index:2}.cml-app .recovery-panel{max-width:760px;margin:32px auto}.legacy-notice{font-size:12px;padding:9px 13px}
+.grid-card{container-type:inline-size}
+@container(min-width:1690px){.planning-table .activity-column-NIC{min-width:244px}.assignment-list.activity-NIC{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;align-items:start}.assignment-list.activity-NIC .pair-tile{margin:0}.compact .assignment-list.activity-NIC{gap:3px}}
+@media(max-width:1100px){.cml-app{grid-template-columns:68px minmax(0,1fr)}.cml-app .cml-main{padding:14px}.cml-app .cml-sidebar{padding:22px 10px}.cml-app .cml-nav button{padding:12px}.cml-app.grid-focus{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:700px),(max-height:520px){.cml-app.planning-page{height:auto;overflow:visible;min-height:100dvh}.planning-page .cml-main{height:auto;display:block;overflow:visible}.planning-page .planning-scroll{min-height:320px;max-height:65dvh}.cml-app .page-heading{flex-wrap:wrap}.cml-app .summary-strip{gap:10px}.cml-app .recovery-panel{margin:12px auto}}
+@media(max-width:700px){.cml-app{display:block}.cml-app .cml-sidebar{padding:8px 10px}.cml-app .cml-main{padding:14px 10px}.cml-app .cml-nav button{padding:8px}.cml-app h1{font-size:25px}.cml-app.grid-focus .cml-sidebar{display:none}}
 `;
 
 function MonthGrid({
@@ -2165,6 +2235,7 @@ function MonthGrid({
     drag = useRef(null),
     generated = Object.keys(month).length > 0;
   const days = ctx.days.filter((k) => mode === "month" || weekKey(k) === week);
+  if (hasLegacyMonth(month)) return <LegacyMonthGrid ctx={ctx} month={month} days={days}/>;
   return (
     <div className={"planning-scroll " + (compact ? "compact" : "")}>
       <table className="planning-table">
@@ -2172,7 +2243,7 @@ function MonthGrid({
           <tr>
             <th className="date-col">Giorno</th>
             {OPD.map((a) => (
-              <th key={a.code}>
+              <th key={a.code} className={"activity-column-"+a.code}>
                 <ActivityTag code={a.code} />
               </th>
             ))}
@@ -2345,6 +2416,7 @@ function MonthGrid({
                   return (
                     <td
                       key={a.code}
+                      className={"activity-column-"+a.code}
                       style={{
                         "--tile-bg": color.bg + "80",
                         "--tile-border": color.bd,
@@ -2361,7 +2433,7 @@ function MonthGrid({
                       }
                     >
                       {groups.length ? (
-                        groups
+                        <div className={"assignment-list activity-"+a.code}>{groups}</div>
                       ) : (
                         <div className="cell-empty">
                           {a.alloc === "pre"
@@ -2413,6 +2485,17 @@ function MonthGrid({
       </table>
     </div>
   );
+}
+function LegacyMonthGrid({ctx,month,days=ctx.days}) {
+  const columns=archiveActivities(month),names=sN(ctx.state.users);
+  return <div className="planning-scroll legacy-grid"><table className="planning-table"><thead><tr><th className="date-col">Giorno</th>{columns.map(a=><th key={a.code}><ActivityTag code={a.code}/></th>)}</tr></thead><tbody>{days.map(key=><tr key={key}><th className="date-col">{dn(ctx.year,ctx.month,Number(key.slice(-2)))} {Number(key.slice(-2))}</th>{columns.map(a=><td key={a.code} style={{background:COL[a.code] ? COL[a.code].bg+"40" : "#f5f7f9"}}>{dayLegacyLabel(month[key],a.code)&&<div className="legacy-label">{dayLegacyLabel(month[key],a.code)}</div>}{(month[key]?.[a.code]||[]).map((id,i)=><div key={i} className={"legacy-name "+(ctx.byId[id]?.ct==="STR"?"str":"")} title={ctx.byId[id]?.name||id||"Posto libero"}>{id?(names[id]||"Non in elenco ("+id+")"):"Posto libero"}{ctx.byId[id]?.ml&&<span className="legacy-role">ML</span>}</div>)}</td>)}</tr>)}</tbody></table></div>;
+}
+function dayLegacyLabel(day,code) {
+  return day?._trios?.[code]>0 ? day._trios[code]+(day._trios[code]===1?" terna indicata":" terne indicate")+" · ordine originale" : code==="ASP"?"Attività storica":"";
+}
+function LegacyStatsView({ctx,month}) {
+  const columns=archiveActivities(month),ids=unique(Object.values(month).flatMap(allIds));
+  return <div className="panel"><h2>Conteggi dell’archivio storico</h2><p className="muted small">Conteggi delle assegnazioni conservate, comprese ASP e le persone non più presenti nell’anagrafica.</p><div className="data-scroll"><table className="data-table"><thead><tr><th>Operatore</th>{columns.map(a=><th key={a.code}>{a.label}</th>)}</tr></thead><tbody>{ids.map(id=><tr key={id}><td>{ctx.byId[id]?.name||"Operatore non in elenco ("+id+")"}</td>{columns.map(a=><td className="number" key={a.code}>{Object.values(month).reduce((n,day)=>n+(day[a.code]||[]).filter(uid=>uid===id).length,0)||"—"}</td>)}</tr>)}</tbody></table></div></div>;
 }
 function AssignmentEditor({ ctx, month, edit, onApply, onClose, onOverride }) {
   const { key, code } = edit,
@@ -2613,9 +2696,9 @@ function DayDetails({
   onRepair,
   onOverride,
 }) {
+  if (hasLegacyMonth(month)) return <Dialog wide title={dateLabel(dayKey)+" · archivio storico"} onClose={onClose}><p className="dialog-copy">I nomi e le indicazioni delle terne sono conservati nell’ordine originale. Questo mese è consultabile e stampabile.</p><LegacyMonthGrid ctx={ctx} month={month} days={[dayKey]}/></Dialog>;
   const day = month[dayKey] || {},
-    report = validateDay(ctx, dayKey, day),
-    [pres, setPres] = useState(false);
+    report = validateDay(ctx, dayKey, day);
   return (
     <Dialog wide title={dateLabel(dayKey)} onClose={onClose}>
       <div className="toolbar">
@@ -2747,6 +2830,7 @@ function DayDetails({
   );
 }
 function FairnessView({ ctx, month }) {
+  if (hasLegacyMonth(month)) return <LegacyStatsView ctx={ctx} month={month}/>;
   const stats = historyStats(ctx, month),
     weeks = unique(ctx.workDays.map(weekKey));
   return (
@@ -2859,6 +2943,7 @@ function FairnessView({ ctx, month }) {
   );
 }
 function StatsView({ ctx, month }) {
+  if (hasLegacyMonth(month)) return <LegacyStatsView ctx={ctx} month={month}/>;
   const stats = historyStats(ctx, month);
   const people = ctx.state.users
     .filter(
@@ -2965,6 +3050,10 @@ function escapeHTML(s) {
   );
 }
 function printHTML(ctx, month) {
+  if (hasLegacyMonth(month)) {
+    const columns=archiveActivities(month);
+    return '<!doctype html><html lang="it"><meta charset="utf-8"><title>Archivio storico CML</title><style>@page{size:A4 landscape;margin:8mm}body{font-family:Arial;color:#193547}h1{font-size:18px}p{font-size:11px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccd8df;padding:4px;vertical-align:top;text-align:left;font-size:8px}tr{break-inside:avoid}.str{font-weight:bold}small{display:block;font-size:7px;margin-bottom:4px}@media print{button{display:none}}</style><h1>CML Catania · '+escapeHTML(MN[ctx.month]+' '+ctx.year)+'</h1><p>Archivio storico: nomi e indicazioni delle terne nell’ordine originale, senza conversione in coppie. Grassetto: STR.</p><button onclick="window.print()">Stampa / Salva PDF</button><table><thead><tr><th>Giorno</th>'+columns.map(a=>'<th>'+escapeHTML(a.label)+'</th>').join('')+'</tr></thead><tbody>'+ctx.days.map(key=>'<tr><th>'+escapeHTML(dateLabel(key))+'</th>'+columns.map(a=>'<td><small>'+escapeHTML(dayLegacyLabel(month[key],a.code))+'</small>'+(month[key]?.[a.code]||[]).map(id=>'<div class="'+(ctx.byId[id]?.ct==='STR'?'str':'')+'">'+escapeHTML(id?(ctx.byId[id]?.name||'Non in elenco ('+id+')'):'Posto libero')+(ctx.byId[id]?.ml?' · ML':'')+'</div>').join('')+'</td>').join('')+'</tr>').join('')+'</tbody></table>'+(ctx.state.ntA[ctx.mk]?'<p>'+escapeHTML(ctx.state.ntA[ctx.mk])+'</p>':'')+'</html>';
+  }
   const names = sN(ctx.state.users);
   const rows = ctx.days
     .map((key) => {
@@ -4204,6 +4293,7 @@ export default function App({ archiveStore }) {
     [mode, setMode] = useState("month"),
     [week, setWeek] = useState(""),
     [compact, setCompact] = useState(false),
+    [expanded, setExpanded] = useState(false),
     [selected, setSelected] = useState(null),
     [edit, setEdit] = useState(null),
     [dialog, setDialog] = useState(null),
@@ -4383,29 +4473,36 @@ export default function App({ archiveStore }) {
       <div className="cml-app" style={{ display: "block", padding: 40 }}>
         <style>{CSS}</style>
         {archive.status === "load-error" ? (
-          <div className="panel">
+          <div className="panel recovery-panel">
             <h2>Recupera il tuo archivio</h2>
             <p>{archive.error}</p>
-            <input
+            <p className="muted">La memoria originale è ancora conservata. Puoi scaricarla prima di tentare un recupero.</p>
+            <div className="form-row" style={{marginBottom:18}}>
+              {store.readOriginal && <Button icon="download" primary onClick={()=>{try{const raw=store.readOriginal();if(raw!==null)downloadFile("CML_memoria_originale.json",raw);else notify("Non è presente una memoria salvata.");}catch(e){notify(e.message,true);}}}>Scarica memoria originale</Button>}
+              <Button onClick={()=>archive.reload().catch(e=>notify(e.message,true))}>Riprova apertura</Button>
+            </div>
+            {store.recover && <label className="field">Importa un backup valido<input
               type="file"
               accept=".json"
               aria-label="Importa backup di recupero"
               onChange={async (e) => {
                 try {
                   const f = e.target.files?.[0];
+                  e.target.value = "";
                   if (f) {
+                    if (f.size > 10 * 1024 * 1024) throw new Error("Il file supera 10 MB.");
                     const next = sanitizeState(JSON.parse(await f.text()));
-                    const original = localStorage.getItem(STORAGE_KEY);
+                    const original = store.readOriginal();
                     if (original)
                       downloadFile("CML_memoria_da_recuperare.json", original);
-                    localStorage.removeItem(STORAGE_KEY);
-                    archive.setData(next);
+                    await store.recover(next, original);
+                    await archive.reload();
                   }
                 } catch (err) {
                   notify(err.message, true);
                 }
               }}
-            />
+            /></label>}
           </div>
         ) : (
           <div className="busy">
@@ -4420,8 +4517,9 @@ export default function App({ archiveStore }) {
         )}
       </div>
     );
-  const generated = Object.keys(month).length > 0,
-    reports = generated
+  const historical = hasLegacyMonth(month),
+    generated = Object.keys(month).length > 0,
+    reports = generated && !historical
       ? ctx.workDays.map((k) => validateDay(ctx, k, month[k]))
       : [],
     problems = reports.filter(
@@ -4431,7 +4529,7 @@ export default function App({ archiveStore }) {
     hist = history[ctx.mk] || { past: [], future: [] },
     weeks = unique(ctx.workDays.map(weekKey));
   return (
-    <div className="cml-app">
+    <div className={"cml-app "+(tab==="planning"?"planning-page "+(expanded?"grid-focus":""):"")}>
       <style>{CSS}</style>
       <aside className="cml-sidebar">
         <div className="cml-brand">
@@ -4557,6 +4655,7 @@ export default function App({ archiveStore }) {
             )}
           </div>
         )}
+        {historical && <div className="banner legacy-notice">Assegnazioni storiche in consultazione: questo mese contiene terne, attività precedenti o nomi non più in anagrafica. Le assegnazioni si possono leggere, stampare ed esportare; disponibilità e impostazioni restano modificabili. I mesi nuovi funzionano normalmente.</div>}
         {tab === "planning" && (
           <>
             <div className="toolbar">
@@ -4564,7 +4663,7 @@ export default function App({ archiveStore }) {
                 <Button
                   icon="spark"
                   primary
-                  disabled={busy}
+                  disabled={busy || historical}
                   onClick={() => setDialog({ type: "generate" })}
                 >
                   {generated ? "Rigenera planning" : "Genera planning"}
@@ -4577,7 +4676,7 @@ export default function App({ archiveStore }) {
                       ? "Annulla · " + hist.past.at(-1).label
                       : "Nessuna modifica da annullare"
                   }
-                  disabled={!hist.past.length || busy}
+                  disabled={!hist.past.length || busy || historical}
                   onClick={() => undo("undo")}
                 >
                   <Icon name="undo" size={17} />
@@ -4585,7 +4684,7 @@ export default function App({ archiveStore }) {
                 <button
                   className="icon-button"
                   aria-label="Ripeti modifica"
-                  disabled={!hist.future.length || busy}
+                  disabled={!hist.future.length || busy || historical}
                   onClick={() => undo("redo")}
                 >
                   <Icon name="redo" size={17} />
@@ -4600,6 +4699,7 @@ export default function App({ archiveStore }) {
                 </span>
               </div>
               <div className="toolbar-group">
+                <Button icon="expand" aria-pressed={expanded} onClick={()=>setExpanded(v=>!v)}>{expanded?"Mostra menu":"Espandi griglia"}</Button>
                 <div className="segmented" aria-label="Vista planning">
                   <button
                     className={mode === "month" ? "active" : ""}
@@ -4655,10 +4755,10 @@ export default function App({ archiveStore }) {
                 operatori in rotazione
               </span>
               <span className={"summary-stat " + (problems ? "warn" : "")}>
-                <b>{generated ? problems : "—"}</b> giornate da verificare
+                <b>{generated && !historical ? problems : "—"}</b> giornate da verificare
               </span>
               <span className="summary-stat">
-                <b>{generated ? unplaced : "—"}</b> presenze non assegnate
+                <b>{generated && !historical ? unplaced : "—"}</b> presenze non assegnate
               </span>
             </div>
             {busy && (
@@ -4673,7 +4773,7 @@ export default function App({ archiveStore }) {
                   Planning {mode === "month" ? "mensile" : "settimanale"}
                 </strong>
                 <span>
-                  Clicca una data per verificare e riparare la giornata
+                  {historical ? "Assegnazioni conservate nell’ordine originale" : "Clicca una data per verificare e riparare la giornata"}
                 </span>
               </div>
               {!generated && (
@@ -4722,16 +4822,16 @@ export default function App({ archiveStore }) {
                 <div className="legend">
                   <span>Grassetto: strutturato</span>
                   <span>ML: medico legale</span>
-                  <span>Trascina per spostare o scambiare</span>
+                  <span>{historical ? "Archivio in consultazione" : "Trascina per spostare o scambiare"}</span>
                 </div>
-                <label className="check-label small">
+                {!historical && <label className="check-label small">
                   <input
                     type="checkbox"
                     checked={compact}
                     onChange={(e) => setCompact(e.target.checked)}
                   />
                   Vista compatta
-                </label>
+                </label>}
               </div>
             </div>
           </>
@@ -4783,6 +4883,7 @@ export default function App({ archiveStore }) {
                   Copia di recupero
                 </Button>
               )}
+              {!store.shared && <Button icon="download" onClick={()=>{try{const raw=localStorage.getItem(ORIGINAL_KEY);if(raw)downloadFile("CML_memoria_prima_aggiornamento.json",raw);else notify("La copia originale verrà conservata al primo salvataggio.");}catch(e){notify(e.message,true);}}}>Memoria prima dell’aggiornamento</Button>}
             </div>
             <p className="settings-note">
               Ultimo salvataggio:{" "}
